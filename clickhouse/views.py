@@ -8,8 +8,8 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from clickhouse_driver import Client
 
-# client = Client('192.168.0.147')
-client = Client('localhost')
+client = Client('192.168.0.147')
+# client = Client('localhost')
 
 
 @require_http_methods(['GET'])
