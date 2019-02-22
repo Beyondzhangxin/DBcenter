@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>数据导入</title>
+    <script src="/static/js/jquery-1.12.4.min.js"></script>
+    <script src="/static/js/xlsx.js"></script>
+    <script src="/static/js/toastr.min.js"></script>
+    <script src="/static/js/ProcessXlsFile.js"></script>
+    <script src="/static/js/vue.js"></script>
+    <script src="/static/js/jquery.dataTables.js"></script>
+
+    <!-- CSS  -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="/static/css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+    <link rel="stylesheet" type="text/css" href="/static/css/jquery.dataTables.css">
+</head>
+
+<body>
+<div id="clickhouse">
+    <div class="row head">
+        <ul class="tabs">
+            <li class="tab col l6 "><a href="#uploadData" class="active">上传数据</a></li>
+            <li class="tab col l6 "><a href="#searchData" class="">查看数据</a></li>
+        </ul>
+    </div>
+    <div class="row content">
+        <div class="col l12" id="uploadData">
+            <div class="row">
+                <div class="input-field col l2">
+                    <input placeholder="Placeholder" v-model="dataType" type="text">
+                    <label for="fileName">数据类型</label>
+                </div>
+                <div class="input-field col l2">
+                    <input placeholder="Placeholder" id="fileName" v-model="fileName" type="text">
+                    <label for="fileName">文件名</label>
+                </div>
+                <div class="col l2 ">
+                    <label class="">选择文件</label>
+                    <button class="file" v-on:click="data_import()"><img src="/static/img/file.png"
+                                                                         height="30px" width="30px">
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col l12" id="searchData">
+            <div class="row">
+                <div class="col l2 ">
+                    <span>数据类型</span>
+                    <select class="browser-default" id="dataType">
+                        <option v-for="type in dataTypeList">
+                            [[ type ]]
+                        </option>
+                    </select>
+                </div>
+                <div class="col l2">
+                    <span>数据表</span>
+                    <select class="browser-default" name="tableList" id="tableList">
+                        <option v-for="table in tableList" v-bind:value="table[2]">
+                            [[ table[0] ]]
+                        </option>
+                    </select>
+                </div>
+                <div class="col l2 offset-l6" style="padding-left: 80px;
+    margin-top: 30px;">
+                    <a class="waves-effect waves-light btn" v-on:click="delete_table()">删除</a>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col l10 push-l1 ">
+                    <table id="dataTable" class="display">
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    var table;
+    var clickHouse = new Vue({
+        el: '#clickhouse',
+        delimiters: ['[[', ']]'],
+        data: {
+            tableList: [['', '', '']],
+            dataTypeList: [''],
+            page: 1,
+            pageSize: 10,
+            columns: [],
+            dataType: '',
+            fileName: '',
+        },
+        methods: {
+            init() {
+                var that = this;
+                var inputNode = document.createElement('input');
+                inputNode.type = 'file';
+                inputNode.id = 'file';
+                inputNode.style.visibility = 'hidden';
+                document.getElementById('clickhouse').appendChild(inputNode);
+
+                inputNode.onchange = function() {
+                    var files = $('#file')[0].files;
+                    var f = files[0];
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var data = e.target.result;
+                        xw(data, that.process_wb, f);
+                    };
+                    reader.readAsBinaryString(f);
+                };
+                this.refreshDataTypeList();
+            },
+            refreshDataTypeList: function() {
+                var that = this;
+                list = [''];
+                $.get('http://' + location.hostname + ':8090/clickhouse/getTypeList', {'userId': {{userId}} },
+
+                function(data) {
+                    for (var i = 0; i < data.data.length; i++) {
+                        list.push(data.data[i][0]);
+                    }
+                }
+
+            )
+                ;
+                that.dataTypeList = list;
+
+            },
+            process_wb: function(wb, param) {
+                //var output = JSON.stringify(to_json(wb));
+                var that = this;
+                var value = to_json(wb)[0];
+                var url = 'http://' + location.hostname + ':8090/clickhouse/doDataImport';
+                var data = {
+                    data: JSON.stringify(value),
+                    fileName: this.fileName,
+                    size: param.size,
+                    lastModified: param.lastModified,
+                    dataType: this.dataType,
+                    userId: {{userId}} }
+                ;
+                $.post(url, data, function(resp) {
+                    if (resp.error_num == 0) {that.refreshDataTypeList();}
+                    ;
+                });
+            },
+            dataTypeChange: function(event) {
+                var that = this;
+                var x = document.getElementById('dataType');
+                var selectedOption = x.options[x.selectedIndex].text;
+                if (selectedOption != '') {
+                    that.tableList = [['', '', '']];
+                    $.get('http://' + location.hostname + ':8090/clickhouse/getFileList',
+                        {'dataType': selectedOption, 'userId': {{userId}}
+                },
+
+                    function(data) {
+                        for (var i = 0; i < data.data.length; i++) {
+                            that.tableList.push(data.data[i]);
+                        }
+                    }
+
+                )
+                    ;
+                } else {
+                    x.options[0].selected = true;
+                }
+            },
+            tableChange: function(event) {
+                var that = this;
+                var x = document.getElementById('tableList');
+                var selectedOption = x.options[x.selectedIndex].value;
+                $.get('http://' + location.hostname + ':8090/clickhouse/getTable',
+                    {'targetName': selectedOption, 'page': 0, 'pageSize': 1},
+                    function(data) {
+                        if (data.error_num != 1) {
+                            if (table&&table.data().length>0) {
+                                table.destroy();
+                            }
+                            $('#dataTable').empty();
+
+                            //create the title of table
+                            var thead = document.createElement('thead');
+                            var tr = document.createElement('tr');
+                            thead.appendChild(tr);
+                            that.columns = data.columns.map(function(elem) {
+                                var th = document.createElement('th');
+                                tr.appendChild(th);
+                                th.textContent = elem;
+                                return {'title': elem};
+                            });
+                            $('#dataTable').append($(thead));
+                            table = $('#dataTable').DataTable({
+                                'processing': true,
+                                'serverSide': true,
+                                'ajax': {
+                                    url: 'http://' + location.hostname + ':8090/clickhouse/getTable',
+                                    data: {'targetName': selectedOption, 'source': 'cloudSpace'},
+                                    type: 'get',
+                                },
+                            });
+                        }else {
+                            if (table&&table.data().length>0) {
+                                table.destroy();
+                                table.clear();
+                            }
+                            $('#dataTable').empty();
+                            var div = $('<div>该表格不存在或被删除</div>');
+                            $('#dataTable').append(div);
+                        }
+
+                    });
+
+            },
+            data_import: function() {
+                if (this.dataType == '') {
+                    alert('请输入数据类型！');
+                } else if (this.fileName == '') {
+                    alert('请输入文件名！');
+                } else $('#file').click();
+            },
+            delete_table: function() {
+                var tableName = $('#tableList option:selected').val();
+                $.get('http://' + location.hostname + ':8090/clickhouse/deleteTable',
+                    {'tableName': tableName}, function(data) {
+                        if (data.msg == 'success') {
+                            alert('删除成功！');
+                        } else alert('删除失败！');
+                    });
+            },
+
+        },
+        mounted: function() {
+
+            this.init();
+            document.getElementById('dataType').onchange = this.dataTypeChange;
+            document.getElementById('tableList').onchange = this.tableChange;
+        },
+
+    });
+    $(document).ready(function() {
+        $('.tabs').tabs();
+    });
+</script>
+<script src="/static/js/materialize.js"></script>
+</body>
+</html>
