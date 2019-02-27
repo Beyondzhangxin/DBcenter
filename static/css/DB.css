@@ -1,0 +1,60 @@
+body {
+    background-color: white;
+    color: #333;
+}
+
+.wrapper {
+    height: auto !important;
+    margin: 0;
+    min-height: 100%;
+    overflow: hidden;
+    position: relative;
+    text-align: left;
+    width: 100%;
+}
+
+#content{
+    margin: 50px auto;
+    padding-bottom: 220px;
+    min-height: 600px;
+}
+
+.container_12{
+    width: 960px;
+    position: relative;
+}
+
+.bg_dotted {
+    background: #fff url("/static/img/bg_dotted.png") 0 0 repeat;
+    position: relative;
+}
+
+.bg_dotted .grid_12 {
+    margin: 10px;
+}
+
+.container_12 .grid_12 {
+    width: 940px;
+}
+
+.tab_menu > ul.tabs {
+    position: relative;
+    height: 37px;
+    padding: 6px 10px;
+    background: #42545e url(/static/img/tab_background.png) 0 0 repeat-x;
+}
+
+.tab_menu>ul.tabs li{
+    list-style-type: none;
+    margin: 0;
+    display: inline-block;
+}
+.tab_menu>ul.tabs li a{
+    float: left;
+    margin-left: 12px;
+    height: 26px;
+    padding: 0 8px;
+    line-height: 25px;
+    font-size: 110%;
+
+}

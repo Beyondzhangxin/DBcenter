@@ -139,7 +139,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
 TIME_ZONE = 'UTC'
 
 USE_I18N = True

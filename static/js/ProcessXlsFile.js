@@ -5,7 +5,7 @@ function xw_xfer(data, cb,param) {
 		switch(e.data.t) {
 			case 'ready': break;
 			case 'e': console.error(e.data.d); break;
-			default: xx=ab2str(e.data).replace(/\n/g,"\\n").replace(/\r/g,"\\r");toastr["info"]('upload success'); cb(JSON.parse(xx),param); break;
+			default: xx=ab2str(e.data).replace(/\n/g,"\\n").replace(/\r/g,"\\r"); cb(JSON.parse(xx),param); break;
 		}
 	};
 		var val = s2ab(data);

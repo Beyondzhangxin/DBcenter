@@ -104,13 +104,53 @@
                     var files = $('#file')[0].files;
                     var f = files[0];
                     var reader = new FileReader();
-                    reader.onload = function(e) {
-                        var data = e.target.result;
-                        xw(data, that.process_wb, f);
-                    };
-                    reader.readAsBinaryString(f);
+                    if (f.name.split('.')[1] !== 'mat') {
+                        reader.readAsBinaryString(f);
+                        reader.onload = function(e) {
+                            var data = e.target.result;
+                            xw(data, that.process_wb, f);
+                        };
+                    } else {
+                        reader.readAsDataURL(f);
+                        reader.onload = function(e) {
+                            var data = e.target.result.split(',')[1];
+                            that.process_mat(data, f);
+                        };
+                    }
+
                 };
                 this.refreshDataTypeList();
+            },
+            process_mat: function(data, param) {
+                var url = 'http://' + location.hostname + ':8090/clickhouse/doDataImport';
+                var that = this;
+                var data = {
+                    data: data,
+                    fileName: this.fileName,
+                    size: param.size,
+                    fullName: param.name,
+                    lastModified: param.lastModified,
+                    dataType: this.dataType,
+                    userId: {{userId}} }
+                ;
+                jQuery.ajax({
+                    dataType: 'json',
+                    data: JSON.stringify(data),
+                    url: url,
+                    type: 'post',
+                    cache: false,
+                    processData: false,
+                    contentType: false,
+                    success: function(data) {
+                        if (data.error_num == 0) {
+                             toastr['info']('upload success!');
+                            that.refreshDataTypeList();
+                        } else {
+                            toastr['info']('upload failed!');
+                        }
+                    },
+                });
+
             },
             refreshDataTypeList: function() {
                 var that = this;
@@ -137,12 +177,18 @@
                     data: JSON.stringify(value),
                     fileName: this.fileName,
                     size: param.size,
+                    fullName:param.name,
                     lastModified: param.lastModified,
                     dataType: this.dataType,
                     userId: {{userId}} }
                 ;
                 $.post(url, data, function(resp) {
-                    if (resp.error_num == 0) {that.refreshDataTypeList();}
+                    if (resp.error_num == 0) {
+                        toastr['info']('upload success!');
+                        that.refreshDataTypeList();
+                    } else {
+                        toastr['info']('upload failed!');
+                    }
                     ;
                 });
             },

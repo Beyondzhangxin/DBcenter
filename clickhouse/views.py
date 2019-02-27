@@ -1,6 +1,9 @@
+import base64
 import json
+import os
 import uuid
 
+import numpy as np
 from django.http import JsonResponse
 from django.shortcuts import render
 
@@ -8,9 +11,12 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from clickhouse_driver import Client
 
-client = Client('192.168.0.147')
-# client = Client('localhost')
+from utils.testmat import readFile
 
+# client = Client('192.168.0.147')
+client = Client('localhost')
+curPath = os.path.abspath(os.path.dirname(__file__))
+rootPath = curPath[:curPath.find("DBcenter\\")+len("DBcenter\\")]
 
 @require_http_methods(['GET'])
 def dataImport(request):
@@ -21,36 +27,73 @@ def dataImport(request):
 
 @require_http_methods(['POST'])
 def doDataImport(request):
-    data = json.loads(request.POST.get('data'))
+    # dt=request.body.get('data')
     response = {}
-    user = request.POST.get('userId')
-    fileName = request.POST.get('fileName')
-    dataType = request.POST.get('dataType')
-    tableName = 'cloudpss.cloudpss' + ''.join(str(uuid.uuid1()).split('-'))
-    dataLen = len(data[0])
-    orderNum = 1
-    # [value,value,orderNum,key]
-    for item in data:
-        item.extend([orderNum])
-        orderNum += 1
+
+    try:
+        param=json.loads(request.body)
+    except Exception as e:
+        param=request.POST
+    user = str(param.get('userId'))
+    fileName = param.get('fileName')
+    dataType = param.get('dataType')
+    # load .mat file
+    if request.POST.get('data') is None:
+        data = param['data']
+        data=base64.b64decode(data)
+        filePath=os.path.abspath(rootPath + 'temp\\mat111'+'.mat')
+        try:
+            file =open(filePath,'wb')
+            file.write(data)
+            file.flush()
+            mat_data=readFile(filePath)
+            for key, val in mat_data.items():
+                # process the data in mat file
+                if type(val)==np.ndarray and val.ndim<=2:
+                    if val.shape[0]>val.shape[1]:
+                        val=val.T
+                    val=val.astype(np.str)
+                    tableName = 'cloudpss.cloudpss' + ''.join(str(uuid.uuid1()).split('-'))
+                    name=fileName+'_'+key
+                    doDataInsert(tableName,name,user,dataType,(val.T).tolist())
+                if type(val) == np.ndarray and val.ndim > 2:
+                    raise NameError("数据维度有误！")
+            response['msg'] = 'success'
+            response['error_num'] = 0
+        except Exception as e:
+            response['msg'] = str(e)
+            response['error_num'] = 1
+        finally:
+            file.close()
+
+    else:
+        # load .xsl file
+        data=json.loads(param.get('data'))
+        try:
+            tableName = 'cloudpss.cloudpss' + ''.join(str(uuid.uuid1()).split('-'))
+            doDataInsert(tableName, fileName, user, dataType, data)
+            response['msg'] = 'success'
+            response['error_num'] = 0
+        except Exception as e:
+            response['msg'] = str(e)
+            response['error_num'] = 1
+    return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
+
+def doDataInsert(tableName,fileName,user,dataType,data):
+    column = len(data[0])
+    for index, value in enumerate(data):
+        value.append(index)
     create_column = ' (index String,'
     insert_column = '(index,'
-    for i in range(dataLen - 1):
+    for i in range(column - 1):
         create_column += 'value' + str(i + 1) + ' String,'
         insert_column += 'value' + str(i + 1) + ','
     create_column += 'date Date default now(),orderNum UInt32)'
     insert_column += 'orderNum)'
-    try:
-        client.execute('CREATE TABLE IF NOT EXISTS ' + tableName +
-                       create_column + 'ENGINE = MergeTree(date,(orderNum),8192)')
-        insert(tableName, insert_column, data)
-        createFileIndex(fileName, tableName, user, dataType)
-        response['msg'] = 'success'
-        response['error_num'] = 0
-    except Exception as e:
-        response['msg'] = str(e)
-        response['error_num'] = 1
-    return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
+    client.execute('CREATE TABLE IF NOT EXISTS ' + tableName +
+                   create_column + 'ENGINE = MergeTree(date,(orderNum),8192)')
+    insert(tableName, insert_column, data)
+    createFileIndex(fileName, tableName, user, dataType)
 
 
 @require_http_methods(['GET'])

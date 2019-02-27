@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>test</title>
+    <script src="/static/js/jquery-1.12.4.min.js"></script>
+    <script src="/static/js/xlsx.js"></script>
+    <script src="/static/js/toastr.min.js"></script>
+    <script src="/static/js/ProcessXlsFile.js"></script>
+    <script src="/static/js/vue.js"></script>
+    <script src="/static/js/jquery.dataTables.js"></script>
+
+    <!-- CSS  -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="/static/css/jquery.dataTables.css">
+    <style>
+        /*thead td {*/
+            /*background-color: #CCCCCC;*/
+            /*text-align: center;*/
+        /*}*/
+
+        /*tbody td {*/
+            /*text-align: center;*/
+        /*}*/
+    </style>
+</head>
+<body>
+doing test!!!
+<!--<table id="dataTable" class="display" style="width:100%">-->
+<!--</table>-->
+
+<!--<table id="tab11" style="display: none">-->
+    <!--<tbody>-->
+    <!--<tr>-->
+        <!--<td height="30" align="center">-->
+            <!--<input type="text" name="NO" size="2" value="1"/></td>-->
+        <!--<td align="center">-->
+            <!--<input type="text" name="line_name"/></td>-->
+        <!--<td align="center">-->
+            <!--<input type="text" name="Y_dataSource"/></td>-->
+        <!--<td>-->
+            <!--<img src="/static/img/delete.png" style="height: 20px;width: 20px;cursor:pointer;background-color:#949494"-->
+                 <!--onClick="deltr(this)">-->
+        <!--</td>-->
+    <!--</tr>-->
+    <!--</tbody>-->
+<!--</table>-->
+<!--<div id="group_copy" style="width:420px;margin:20px auto;display: none">-->
+    <!--<div>横坐标类型 <select>-->
+        <!--<option>choose table</option>-->
+    <!--</select><input placeholder="choose column"></div>-->
+    <!--<table class="dynamicTable" width="700" border="0" cellspacing="0" cellpadding="0">-->
+        <!--<thead>-->
+        <!--<tr>-->
+            <!--<td height="30" align="center">序号</td>-->
+            <!--<td align="center" bgcolor="#CCCCCC">曲线名</td>-->
+            <!--<td align="center" bgcolor="#CCCCCC">y轴数据源</td>-->
+            <!--<td align="center" bgcolor="#CCCCCC"><input type="button" onclick="add_row(this)"-->
+                                                        <!--style="background-color: CornflowerBlue;cursor: pointer; "-->
+                                                        <!--value="添加"></td>-->
+        <!--</tr>-->
+        <!--</thead>-->
+        <!--<tbody>-->
+        <!--<tr>-->
+            <!--<td height="30" align="center">-->
+                <!--<input type="text" name="NO" size="2" value="1"/></td>-->
+            <!--<td align="center">-->
+                <!--<input type="text" name="line_name"/></td>-->
+            <!--<td align="center">-->
+                <!--<input type="text" name="Y_dataSource"/></td>-->
+            <!--<td>-->
+                <!--<img src="/static/img/delete.png"-->
+                     <!--style="height: 20px;width: 20px;cursor:pointer;background-color:#949494" onClick="deltr(this)">-->
+            <!--</td>-->
+        <!--</tr>-->
+        <!--</tbody>-->
+    <!--</table>-->
+<!--</div>-->
+<!--<input type="button" id="group_add" style="background-color: CornflowerBlue;cursor: pointer;" onclick="add_group()"-->
+       <!--value="添加分组">-->
+
+<!--<div id="table_group" style="overflow: scroll;width:750px;height: 700px">-->
+    <!--<div id="group" style="width:420px;margin:20px auto;">-->
+        <!--<div>横坐标类型 <select>-->
+            <!--<option>choose table</option>-->
+        <!--</select><input placeholder="choose column"></div>-->
+        <!--<table class="dynamicTable" width="400" border="0" cellspacing="0" cellpadding="0">-->
+            <!--<thead>-->
+            <!--<tr>-->
+                <!--<td height="30" align="center">序号</td>-->
+                <!--<td align="center" bgcolor="#CCCCCC">曲线名</td>-->
+                <!--<td align="center" bgcolor="#CCCCCC">y轴数据源</td>-->
+                <!--<td align="center" bgcolor="#CCCCCC"><input type="button" onclick="add_row(this)"-->
+                                                            <!--style="background-color: CornflowerBlue;cursor: pointer; "-->
+                                                            <!--value="添加"></td>-->
+            <!--</tr>-->
+            <!--</thead>-->
+            <!--<tbody>-->
+            <!--<tr>-->
+                <!--<td height="30" align="center">-->
+                    <!--<input type="text" name="NO" size="2" value="1"/></td>-->
+                <!--<td align="center">-->
+                    <!--<input type="text" name="line_name"/></td>-->
+                <!--<td align="center">-->
+                    <!--<input type="text" name="Y_dataSource"/></td>-->
+                <!--<td>-->
+                    <!--<img src="/static/img/delete.png"-->
+                         <!--style="height: 20px;width: 20px;cursor:pointer;background-color:#949494" onClick="deltr(this)">-->
+                <!--</td>-->
+            <!--</tr>-->
+            <!--</tbody>-->
+        <!--</table>-->
+    <!--</div>-->
+<!--</div>-->
+
+<!--dynamically change the table-->
+
+<select id="select" ></select>
+<input id="input" type="text">
+
+<script type="text/javascript">
+
+    $(function() {
+        $.get('http://' + location.hostname + ':8090/clickhouse/getFileList',
+                        {'dataType': 'temperature', 'userId': 52
+                },function(data) {
+                        for (var i = 0; i < data.data.length; i++) {
+                            var option=$('<option>');
+                            option.html(data.data[i][0]);
+                            option.val(data.data[i][2]);
+                            $('#select').append(option);
+                        }
+                    });
+    })
+
+
+
+
+
+    var show_count = 20;   //要显示的条数
+    function add_row(elem) {
+        var length = $(elem).parents('.dynamicTable').children('tbody').children('tr').length;
+        if (length < show_count)    //点击时候，如果当前的数字小于递增结束的条件
+        {
+            $('#tab11 tbody tr').clone().appendTo($(elem).parents('.dynamicTable').children('tbody'));   //在表格后面添加一行
+            changeIndex($(elem).parents('.dynamicTable'));//更新行号
+        }
+    }
+
+    function changeIndex(elem) {
+        var i = 1;
+        elem.children('tbody').children('tr').each(function() { //循环tab tbody下的tr
+            $(this).find('input[name=\'NO\']').val(i++);//更新行号
+        });
+    }
+
+    function deltr(opp) {
+        var length = $(opp).parents('.dynamicTable').children('tbody').children('tr').length;
+        //alert(length);
+        if (length <= 1) {
+            alert('至少保留一行');
+        } else {
+            var elem = $(opp).parents('.dynamicTable');
+            $(opp).parent().parent().remove();//移除当前行
+            changeIndex(elem);
+        }
+    }
+
+    function add_group() {
+        $('#group_copy').clone().show().appendTo('#table_group');
+    }
+</script>
+
+<script>
+    // var table;
+    // $(function() {
+    //     $.get('http://' + location.hostname + ':8090/clickhouse/getTable',
+    //         {'targetName': 'cloudpss.cloudpss1ae4fb6e14a311e99c1030b49eb09678', 'page': 0, 'pageSize': 1},
+    //         function(data) {
+    //
+    //             if (table) {
+    //                 table.destroy();
+    //                 $('#dataTable').empty();
+    //             }
+    //
+    //             //create the title of table
+    //             var thead = document.createElement('thead');
+    //             var tr = document.createElement('tr');
+    //             thead.appendChild(tr);
+    //             var columns = data.columns.map(function(elem) {
+    //                 var th = document.createElement('th');
+    //                 tr.appendChild(th);
+    //                 th.textContent = elem;
+    //                 return {'title': elem};
+    //             });
+    //             $('#dataTable').append($(thead));
+    //             var value = [];
+    //             for (var i = 0; i < data.data.length; i++) {
+    //                 value.push(data.data[i].slice(0, data.columns.length));
+    //             }
+    //             table = $('#dataTable').DataTable({
+    //                 'processing': true,
+    //                 'serverSide': true,
+    //                 'ajax': 'http://' + location.hostname + ':8090/clickhouse/getTable?targetName=' +
+    //                     'cloudpss.cloudpss1ae4fb6e14a311e99c1030b49eb09678',
+    //             });
+    //
+    //         });
+    //
+    // });
+</script>
+</body>
+</html>
