@@ -4,23 +4,89 @@
     <meta charset="UTF-8">
     <title>数据中心管理</title>
     <link rel="stylesheet" type="text/css" href="/static/css/DB.css">
+    <script src="/static/js/jquery-1.12.4.min.js"></script>
+    <script src="/static/js/vue.js"></script>
 </head>
 <body>
-<div class="wrapper dashboard">
+<div id="dbcenter_manage" class="wrapper dashboard">
     <div id="content" class="container_12">
         <div id="dashboard_content" style="display: block">
             <div class="bg_dotted">
                 <div class="grid_12">
                     <div class="tab_menu">
                         <ul class="tabs">
-                            <li><a href="" class="sel" original-title>数据源</a></li>
-                            <li><a href="" class="sel" original-title>数据集</a></li>
+                            <li><a original-title>数据源</a></li>
+                            <li><a original-title>数据集</a></li>
                         </ul>
+                    </div>
+                    <div id="source_wrapper" class="resource_wrapper" style="opacity: 1;display: block;">
+                        <div class="header_datatable no_select_text" style="user-select: none">
+                            <div class="table_title">
+                                <span>数据源</span>
+                            </div>
+                            <div class="header_actions source_options">
+                                <div class="action right batchRemove js-writer">
+                                    <i class="icon-search tipsy-tooltip"></i>
+                                </div>
+                                <div class="searchLens">
+                                    <i class="icon-search tipsy-tooltip"></i>
+                                </div>
+                                <div class="file-upload">
+                                    <label class="upload_icon">
+                                        <span class="upload_file icon"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+                        <table id="data_source_table" class="data_source_table">
+                            <th>dfa</th>
+                            <tr>
+                                <td>dfadf</td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 </body>
+<script>
+    var dbcenter = new Vue({
+        el: '#dbcenter_manage',
+        methods: {
+            init_dataSource: function() {
+                $.get('http://' + location.hostname + ':8090/clickhouse/getIndex',
+                    {'targetName': 'cloudpss.index', 'page': 0, 'pageSize': 1},
+                    function(data) {
+                    // process the data
+                        console.log('process data');
+
+                    });
+            },
+        },
+        mounted: function() {
+            var that =this;
+            $('.tab_menu>.tabs li a').click(function(event) {
+                $.each($(this).addClass('sel').parent().siblings(), function(index, item) {
+                    $(item).find('a').removeClass('sel');
+                });
+                if ($(this).text() == '数据源') {
+                    that.init_dataSource();
+                }
+            });
+        },
+
+    });
+    // $(function() {
+    //    $('.tab_menu>.tabs li a').click(function(event) {
+    //         $.each($(this).addClass('sel').parent().siblings(),function(index,item) {
+    //             $(item).find('a').removeClass('sel');
+    //         })
+    //     });
+    // })
+
+</script>
 </html>

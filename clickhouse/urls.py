@@ -9,6 +9,7 @@ urlpatterns = [
     url('getFileList', views.searchFileByType),
     url('getTypeList', views.getTypelistByUser),
     url('getTable', views.getTableContentByName),
+    url('getIndex', views.getDataIndex),
     url('deleteTable', views.delTable),
     url('test', views.test),
 ]

@@ -13,8 +13,8 @@ from clickhouse_driver import Client
 
 from utils.testmat import readFile
 
-# client = Client('192.168.0.147')
-client = Client('localhost')
+client = Client('192.168.0.147')
+# client = Client('localhost')
 curPath = os.path.abspath(os.path.dirname(__file__))
 rootPath = curPath[:curPath.find("DBcenter\\")+len("DBcenter\\")]
 
@@ -146,7 +146,24 @@ def getTypelistByUser(request):
         response['error_num'] = 1
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
-
+@require_http_methods(['GET'])
+def getDataIndex(request):
+    tableName=request.GET.get('targetName')
+    page = int(request.GET.get('page'))
+    pageSize = int(request.GET.get('pageSize'))
+    start = page * pageSize + 1
+    end = (page + 1) * pageSize
+    response={}
+    try:
+        res = client.execute("select * from " + tableName)
+        response['data']=res
+        response['msg'] = 'success'
+        response['error_num'] = 0
+    except Exception as e:
+        response['msg'] = str(e)
+        response['error_num'] = 1
+        print(e)
+    return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 def getTableContentByName(request):
     tableName = request.GET.get('targetName')
     source = request.GET.get('source')
