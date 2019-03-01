@@ -136,4 +136,26 @@ body {
     cursor: pointer;
 }
 
+table.data_source_table{
+    border-spacing: 0px;
+}
 
+table.data_source_table .ui-state-default{
+    background: #e2e2e2 url(/static/img/ui-bg_highlight-soft_100_e2e2e2_1x100.png) 50% 50% repeat-x;
+}
+table.data_source_table thead th{
+    height: 35px;
+    padding: 3px 0 3px 10px;
+    cursor: pointer;
+    border: 1px solid #d4d3d3;
+    font-weight: bold;
+    color: #293a43;
+}
+
+table.data_source_table thead th div.DataTables_sort_wrapper{
+    font-weight: normal;
+    font-size: 12px;
+    color: #555;
+    padding-right: 18px;
+    min-height: 20px;
+}

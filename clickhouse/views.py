@@ -119,6 +119,8 @@ def searchFileByType(request):
         response['error_num'] = 1
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
+
+
 @require_http_methods(['GET'])
 def delTable(request):
     response = {}
@@ -149,14 +151,14 @@ def getTypelistByUser(request):
 @require_http_methods(['GET'])
 def getDataIndex(request):
     tableName=request.GET.get('targetName')
-    page = int(request.GET.get('page'))
-    pageSize = int(request.GET.get('pageSize'))
-    start = page * pageSize + 1
-    end = (page + 1) * pageSize
+    start = int(request.GET.get('start'))
+    pageSize = int(request.GET.get('length'))
+    end = start+pageSize-1
     response={}
     try:
         res = client.execute("select * from " + tableName)
-        response['data']=res
+        response['data']=res[start:end]
+        response['recordsFiltered'] = len(res)
         response['msg'] = 'success'
         response['error_num'] = 0
     except Exception as e:
@@ -234,3 +236,8 @@ def insert(table, column, value):
 @require_http_methods(['GET'])
 def test(request):
     return render(request, 'clickhouse/test.html')
+
+@require_http_methods(['GET'])
+def dataTable(request):
+    return render(request, 'clickhouse/dataTable.html')
+

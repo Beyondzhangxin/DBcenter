@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <title>数据中心管理</title>
     <link rel="stylesheet" type="text/css" href="/static/css/DB.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/jquery.dataTables.css">
     <script src="/static/js/jquery-1.12.4.min.js"></script>
     <script src="/static/js/vue.js"></script>
+    <script src="/static/js/jquery.dataTables.js"></script>
+
 </head>
 <body>
 <div id="dbcenter_manage" class="wrapper dashboard">
@@ -40,10 +43,20 @@
 
                         </div>
                         <table id="data_source_table" class="data_source_table">
-                            <th>dfa</th>
+                            <thead>
                             <tr>
-                                <td>dfadf</td>
+                                <th class="ui-state-default" rowspan="1">
+                                    <div class="DataTables_sort_wrapper">
+                                        文件名
+                                        <span class="DataTables_sort_icon css_right ui-icon ui-icon-triangle-1-n"></span>
+                                    </div>
+                                </th>
+                                <th class="ui-state-default" rowspan="1">上传日期</th>
+                                <th class="ui-state-default" rowspan="1">targetName</th>
+                                <th class="ui-state-default" rowspan="1">用户ID</th>
+                                <th class="ui-state-default" rowspan="1">文件类型</th>
                             </tr>
+                            </thead>
                         </table>
                     </div>
                 </div>
@@ -58,17 +71,27 @@
         el: '#dbcenter_manage',
         methods: {
             init_dataSource: function() {
-                $.get('http://' + location.hostname + ':8090/clickhouse/getIndex',
-                    {'targetName': 'cloudpss.index', 'page': 0, 'pageSize': 1},
-                    function(data) {
-                    // process the data
-                        console.log('process data');
+                // process the data
+                table = $('#data_source_table').DataTable({
+                    'processing': true,
+                    'serverSide': true,
+                    'ajax': {
+                        url: 'http://' + location.hostname + ':8090/clickhouse/getIndex',
+                        data: {'targetName': 'cloudpss.index'},
+                        type: 'get',
+                    },
+                    'searching':false,
+                    "lengthChange": false,
+                    'columnDefs':[
+                        {'targets':[2],
+                        'visible':false}
+                    ]
+                });
 
-                    });
             },
         },
         mounted: function() {
-            var that =this;
+            var that = this;
             $('.tab_menu>.tabs li a').click(function(event) {
                 $.each($(this).addClass('sel').parent().siblings(), function(index, item) {
                     $(item).find('a').removeClass('sel');

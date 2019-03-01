@@ -11,5 +11,6 @@ urlpatterns = [
     url('getTable', views.getTableContentByName),
     url('getIndex', views.getDataIndex),
     url('deleteTable', views.delTable),
+    url('dataTable', views.dataTable),
     url('test', views.test),
 ]
