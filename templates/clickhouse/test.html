@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <title>数据中心管理</title>
-    <link rel="stylesheet" type="text/css" href="/static/css/DB.css">
-    <link rel="stylesheet" type="text/css" href="/static/css/jquery.dataTables.css">
+
     <script src="/static/js/jquery-1.12.4.min.js"></script>
+    <script src="/static/js/xlsx.js"></script>
+    <script src="/static/js/ProcessXlsFile.js"></script>
     <script src="/static/js/vue.js"></script>
     <script src="/static/js/jquery.dataTables.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
+    <link rel="stylesheet" type="text/css" href="/static/css/DB.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/select/1.2.7/css/select.dataTables.min.css">
 </head>
 <body>
 <div id="dbcenter_manage" class="wrapper dashboard">
@@ -19,13 +24,13 @@
                     <div class="tab_menu">
                         <ul class="tabs">
                             <li><a original-title>数据源</a></li>
-                            <li><a original-title>数据集</a></li>
+                            <li><a original-title>空间管理</a></li>
                         </ul>
                     </div>
-                    <div id="source_wrapper" class="resource_wrapper" style="opacity: 1;display: block;">
+                    <div id="source_wrapper" class="resource_wrapper wrapper" style="opacity: 1;display: block;">
                         <div class="header_datatable no_select_text" style="user-select: none">
                             <div class="table_title">
-                                <span>数据源</span>
+                                <span class="icon"></span><span>数据源</span>
                             </div>
                             <div class="header_actions source_options">
                                 <div class="action right batchRemove js-writer">
@@ -42,9 +47,30 @@
                             </div>
 
                         </div>
-                        <table id="data_source_table" class="data_source_table">
+                        <div class="toolbar">
+                            <div id="data_source_table_filter" class="search_content dataTables_filter toolbar_ui"
+                                 style="display: none;">
+                                <input type="text" class="q-value" placeholder="用名称搜索">
+                                <span class="dataset_sample_help"
+                                      original-title="使用&quot;config:&quot;或&quot;id:&quot;分别按名称选项或资源ID搜索"></span>
+                            </div>
+                            <div class="fileload_content toolbar_ui" style="display: none;">
+                                <input type="text" class="q-value" v-model="dataType" placeholder="输入数据类型">
+                                <input type="text" class="q-value" v-model="fileName" placeholder="输入文件名称">
+                                <input type="button" value="开始上传">
+                                <div class="alert"></div>
+                            </div>
+                            <div class="remove_content toolbar_ui">
+                                全选<input type="checkbox" id="checkall" value="del_all">
+                            </div>
+
+                        </div>
+
+                        <table id="data_source_table" class="data_source_table display">
                             <thead>
                             <tr>
+                                                                <th class="ui-state-default" rowspan="1"></th>
+
                                 <th class="ui-state-default" rowspan="1">
                                     <div class="DataTables_sort_wrapper">
                                         文件名
@@ -55,9 +81,16 @@
                                 <th class="ui-state-default" rowspan="1">targetName</th>
                                 <th class="ui-state-default" rowspan="1">用户ID</th>
                                 <th class="ui-state-default" rowspan="1">文件类型</th>
+                                <th class="ui-state-default" rowspan="1">大小(Bytes)</th>
                             </tr>
                             </thead>
                         </table>
+                    </div>
+                    <div id="user_space" class="userSpace_wrapper wrapper" style="opacity: 1;display: block;">
+                        <span>已用空间大小：</span>[[used_space_size]] <br>
+                        <span>剩余空间大小：</span>[[left_space_size]] <br>
+                        <span>总空间大小：</span>[[total_space_size]] <br>
+
                     </div>
                 </div>
             </div>
@@ -67,38 +100,249 @@
 
 </body>
 <script>
+
+
+
     var dbcenter = new Vue({
         el: '#dbcenter_manage',
+        delimiters: ['[[', ']]'],
+        data: {
+            dataTable: null,
+            toolbar_visible: false,
+            dataType: '',
+            fileName: '',
+            used_space_size:0,
+            left_space_size:0,
+            total_space_size:0,
+            userId:''
+        },
         methods: {
+            queryString:function(name){
+                var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)');
+                var r = window.location.search.substr(1).match(reg);
+                if (r != null) return unescape(r[2]);
+                return null;
+            },
+            promt_message: function(message, style, time) {
+
+                style = (style === undefined) ? 'alert-success' : style;
+                time = (time === undefined) ? 1200 : time;
+                $('.toolbar .fileload_content .alert').addClass(style).html(message).show().delay(time).fadeOut();
+            },
+            init() {
+                var that = this;
+                var inputNode = document.createElement('input');
+                inputNode.type = 'file';
+                inputNode.id = 'file';
+                inputNode.style.visibility = 'hidden';
+                document.getElementById('source_wrapper').appendChild(inputNode);
+
+                inputNode.onchange = function() {
+                    var files = $('#file')[0].files;
+                    var f = files[0];
+                    var reader = new FileReader();
+                    if (f.name.split('.')[1] !== 'mat') {
+                        reader.readAsBinaryString(f);
+                        reader.onload = function(e) {
+                            var data = e.target.result;
+                            xw(data, that.process_wb, f);
+                        };
+                    } else {
+                        reader.readAsDataURL(f);
+                        reader.onload = function(e) {
+                            var data = e.target.result.split(',')[1];
+                            that.process_mat(data, f);
+                        };
+                    }
+
+                };
+
+                this.userId=this.queryString('userId');
+
+                //    init checkbox
+                $('#checkall').on('click', function() {
+                    if (this.checked) {
+                        $(this).attr('checked', 'checked');
+                        $('input[name=\'ckb-jobid\']').each(function() { this.checked = true; });
+                    } else {
+                        $(this).removeAttr('checked');
+                        $('input[name=\'ckb-jobid\']').each(function() { this.checked = false; });
+                    }
+                });
+            },
+            init_userSpace:function(){
+                var that =this
+                var url = 'http://' + location.hostname + ':8090/clickhouse/userSpace';
+                var data={userId:this.userId}
+                $.get(url,data,function(data) {
+                    that.used_space_size=data.used_space_size;
+                    that.total_space_size=data.allowed_space_size;
+                    that.left_space_size=data.left_space_size;
+                })
+            },
             init_dataSource: function() {
                 // process the data
-                table = $('#data_source_table').DataTable({
+                this.dataTable = $('#data_source_table').DataTable({
                     'processing': true,
                     'serverSide': true,
                     'ajax': {
                         url: 'http://' + location.hostname + ':8090/clickhouse/getIndex',
-                        data: {'targetName': 'cloudpss.index'},
+                        data: {'targetName': 'cloudpss.index','userId':this.userId},
                         type: 'get',
+                        dataFilter:function(data) {
+                            var json=$.parseJSON(data);
+                            for(var i=0;i<json.data.length;i++){
+                                json.data[i].unshift('');
+                            }
+                            return JSON.stringify(json);
+                        }
                     },
-                    'searching':false,
-                    "lengthChange": false,
-                    'columnDefs':[
-                        {'targets':[2],
-                        'visible':false}
-                    ]
+                    'dom': 'rtip',
+                    'aoColumnDefs': [
+                        {
+                            'render': function(data, type, row) {
+                                return '<div align=\'center\'><input type="checkbox" name="ckb-jobid" value=' +
+                                    row[3] + '></div>';
+
+                            }, 'aTargets': 0,
+                        }],
+                    'columnDefs': [
+                        // {
+                        //     // The `data` parameter refers to the data for the cell (defined by the
+                        //     // `data` option, which defaults to the column being worked with, in
+                        //     // this case `data: 0`.
+                        //     'render': function(data, type, row) {
+                        //         return '<a href="">this</a>' + data + ' (' + type + ')';
+                        //     },
+                        //     'targets': 0,
+                        // },
+                        {
+                            orderable: false,
+                            className: 'select-checkbox',
+                            targets: 0,
+                        },
+                        {
+                            'targets': [2],
+                            'visible': false,
+                        },
+                    ],
+                    select: {
+                        style: 'os',
+                        selector: 'td:first-child',
+                    }
+                });
+                $('div.toolbar').css('display', 'none');
+            },
+            process_mat: function(data, param) {
+                var url = 'http://' + location.hostname + ':8090/clickhouse/doDataImport';
+                var that = this;
+                var data = {
+                    data: data,
+                    fileName: this.fileName,
+                    size: param.size,
+                    fullName: param.name,
+                    lastModified: param.lastModified,
+                    dataType: this.dataType,
+                    userId: this.userId}
+                ;
+                jQuery.ajax({
+                    dataType: 'json',
+                    data: JSON.stringify(data),
+                    url: url,
+                    type: 'post',
+                    cache: false,
+                    processData: false,
+                    contentType: false,
+                    success: function(data) {
+                        if (data.error_num == 0) {
+                           that.promt_message('上传成功！');
+                            $('.tab_menu>.tabs li a').first().click();
+                        }else if(data.error_num == 1){
+                            that.promt_message('上传失败！','alert-danger')
+                        }else {
+                            that.promt_message('存储空间已满！','alert-warning')
+                        }
+                    },
                 });
 
             },
+            process_wb: function(wb, param) {
+                //var output = JSON.stringify(to_json(wb));
+                var that = this;
+                var value = to_json(wb)[0];
+                var url = 'http://' + location.hostname + ':8090/clickhouse/doDataImport';
+                var data = {
+                    data: JSON.stringify(value),
+                    fileName: this.fileName,
+                    size: param.size,
+                    fullName:param.name,
+                    lastModified: param.lastModified,
+                    dataType: this.dataType,
+                    userId: this.userId }
+                ;
+                $.post(url, data, function(resp) {
+                    if (resp.error_num == 0) {
+                        toastr['info']('upload success!');
+                         $('.tab_menu>.tabs li a').first().click();
+                    } else {
+                        toastr['info']('upload failed!');
+                    }
+                    ;
+                });
+            },
+
         },
         mounted: function() {
             var that = this;
+            this.init();
+
             $('.tab_menu>.tabs li a').click(function(event) {
                 $.each($(this).addClass('sel').parent().siblings(), function(index, item) {
                     $(item).find('a').removeClass('sel');
                 });
+                $('.grid_12 div.wrapper').css('display', 'none');
                 if ($(this).text() == '数据源') {
-                    that.init_dataSource();
+                    $('.grid_12 div.resource_wrapper').css('display', 'block');
+                    if (that.dataTable == null) {
+                        that.init_dataSource();
+                    } else {
+                        that.dataTable.destroy();
+                        that.init_dataSource();
+                    }
+                }else if($(this).text()=='空间管理'){
+                    $('.grid_12 div.userSpace_wrapper').css('display', 'block');
+                    that.init_userSpace();
                 }
+            });
+            $('.tab_menu>.tabs li a').first().click();
+            $('.header_actions.source_options div').click(function(event) {
+                that.toolbar_visible = !that.toolbar_visible;
+                $('div.toolbar .toolbar_ui').css('display', 'none');
+                var clicked_type = $(this).attr('class');
+                if (clicked_type.indexOf('searchLens') != -1) {
+
+                    $('div.toolbar').
+                        css({display: that.toolbar_visible ? 'block' : 'none'});
+                    $('div.toolbar .search_content').css('display', 'block');
+                }
+                if (clicked_type.indexOf('file-upload') != -1) {
+                    $('div.toolbar').
+                        css({display: that.toolbar_visible ? 'block' : 'none'});
+                    $('div.toolbar div.fileload_content').css('display', 'block');
+                }
+                if (clicked_type.indexOf('batachRemove!=-1')) {
+                    $('div.toolbar').
+                        css({display: that.toolbar_visible ? 'block' : 'none'});
+                    $('div.toolbar div.remove_content').css('display', 'block');
+                };
+
+            });
+            $('.fileload_content input[type="button"]').click(function() {
+                if (that.dataType == '') {
+                    alert('请输入数据类型！');
+                } else if (that.fileName == '') {
+                    alert('请输入文件名！');
+                } else $('#file').click();
             });
         },
 

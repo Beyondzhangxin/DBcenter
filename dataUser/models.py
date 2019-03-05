@@ -9,11 +9,15 @@ from django.db import models
 
 
 class DataUserIndex(models.Model):
-    id = models.AutoField(db_column='Id',verbose_name=u"用户id",primary_key=True)  # Field name made lowercase.
-    targetname = models.CharField(db_column='targetName',verbose_name=u"文件名", max_length=255, blank=True, null=True)  # Field name made lowercase.
-    ispublic = models.IntegerField(db_column='isPublic', verbose_name=u"是否公开",blank=True, null=True)  # Field name made lowercase.
-    shareuser = models.IntegerField(db_column='shareUser', verbose_name=u"分享用户id",blank=True, null=True)  # Field name made lowercase.
-    datagroupnum = models.IntegerField(db_column='dataGroupNum',verbose_name=u"数据组", blank=True, null=True)  # Field name made lowercase.
+    id = models.AutoField(db_column='Id', primary_key=True)  # Field name made lowercase.
+    targetname = models.CharField(db_column='targetName', max_length=255, blank=True, null=True)  # Field name made lowercase.
+    ispublic = models.IntegerField(db_column='isPublic', blank=True, null=True)  # Field name made lowercase.
+    shareuser = models.IntegerField(db_column='shareUser', blank=True, null=True)  # Field name made lowercase.
+    datagroupnum = models.IntegerField(db_column='dataGroupNum', blank=True, null=True)  # Field name made lowercase.
+    allowed_space_size = models.IntegerField(blank=True, null=True)
+    used_space_size = models.IntegerField(blank=True, null=True)
 
     class Meta:
+        managed = False
         db_table = 'data_user_index'
+

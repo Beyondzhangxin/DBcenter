@@ -35,8 +35,17 @@ def doDataImport(request):
     except Exception as e:
         param=request.POST
     user = str(param.get('userId'))
+    used_space_size=calculate_used_space(user)
+    allowed_space_size=get_user_allowed_spaceSize(user)
+
+
     fileName = param.get('fileName')
     dataType = param.get('dataType')
+    fileSize=param.get('size')
+    if(used_space_size+fileSize>allowed_space_size):
+        response['msg'] = '个人存储空间已满！'
+        response['error_num'] = 2
+        return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
     # load .mat file
     if request.POST.get('data') is None:
         data = param['data']
@@ -55,7 +64,7 @@ def doDataImport(request):
                     val=val.astype(np.str)
                     tableName = 'cloudpss.cloudpss' + ''.join(str(uuid.uuid1()).split('-'))
                     name=fileName+'_'+key
-                    doDataInsert(tableName,name,user,dataType,(val.T).tolist())
+                    doDataInsert(tableName,name,user,dataType,(val.T).tolist(),fileSize)
                 if type(val) == np.ndarray and val.ndim > 2:
                     raise NameError("数据维度有误！")
             response['msg'] = 'success'
@@ -71,7 +80,7 @@ def doDataImport(request):
         data=json.loads(param.get('data'))
         try:
             tableName = 'cloudpss.cloudpss' + ''.join(str(uuid.uuid1()).split('-'))
-            doDataInsert(tableName, fileName, user, dataType, data)
+            doDataInsert(tableName, fileName, user, dataType, data,fileSize)
             response['msg'] = 'success'
             response['error_num'] = 0
         except Exception as e:
@@ -79,7 +88,7 @@ def doDataImport(request):
             response['error_num'] = 1
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
-def doDataInsert(tableName,fileName,user,dataType,data):
+def doDataInsert(tableName,fileName,user,dataType,data,fileSize):
     column = len(data[0])
     for index, value in enumerate(data):
         value.append(index)
@@ -93,7 +102,7 @@ def doDataInsert(tableName,fileName,user,dataType,data):
     client.execute('CREATE TABLE IF NOT EXISTS ' + tableName +
                    create_column + 'ENGINE = MergeTree(date,(orderNum),8192)')
     insert(tableName, insert_column, data)
-    createFileIndex(fileName, tableName, user, dataType)
+    createFileIndex(fileName, tableName, user, dataType,fileSize)
 
 
 @require_http_methods(['GET'])
@@ -119,16 +128,37 @@ def searchFileByType(request):
         response['error_num'] = 1
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
+def calculate_used_space(userId):
+    res=client.execute('select sum(fileSize) from cloudpss.index where user =%(user)s group by user ', {'user': userId})
+    return res[0][0]
+
+
+def get_user_allowed_spaceSize(userId):
+    return 10485760
+
+
+def getUserSpaceInfo(request):
+    response = {}
+    userId=request.GET.get('userId')
+    used_space_size = calculate_used_space(userId)
+    allowed_space_size = get_user_allowed_spaceSize(userId)
+    left_space_size = allowed_space_size - used_space_size
+    response['used_space_size'] = used_space_size
+    response['allowed_space_size'] = allowed_space_size
+    response['left_space_size'] = left_space_size
+    return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
 
 @require_http_methods(['GET'])
 def delTable(request):
     response = {}
-    tableName = request.GET.get('tableName')
+    tablelist = json.loads(request.GET.get('tablelist'))
+
     try:
-        res = client.execute("drop table if exists "+tableName)
-        response['msg'] = 'success'
-        response['error_num'] = 0
+        for tableName in tablelist:
+            res = client.execute("drop table if exists "+tableName)
+            response['msg'] = 'success'
+            response['error_num'] = 0
     except Exception as e:
         response['msg'] = str(e)
         response['error_num'] = 1
@@ -150,13 +180,13 @@ def getTypelistByUser(request):
 
 @require_http_methods(['GET'])
 def getDataIndex(request):
-    tableName=request.GET.get('targetName')
     start = int(request.GET.get('start'))
     pageSize = int(request.GET.get('length'))
+    userId=request.GET.get('userId')
     end = start+pageSize-1
     response={}
     try:
-        res = client.execute("select * from " + tableName)
+        res = client.execute('select * from cloudpss.index where user =%(user)s', {'user': userId})
         response['data']=res[start:end]
         response['recordsFiltered'] = len(res)
         response['msg'] = 'success'
@@ -224,9 +254,9 @@ def hasTable(database, tableName):
         return False
 
 
-def createFileIndex(sourceFileName, targetFileName, user, dataType):
-    insert('cloudpss.index', '(sourceName,targetName,user,type)',
-           [[sourceFileName, targetFileName, user, dataType]])
+def createFileIndex(sourceFileName, targetFileName, user, dataType,fileSize):
+    insert('cloudpss.index', '(sourceName,targetName,user,type,fileSize)',
+           [[sourceFileName, targetFileName, user, dataType,fileSize]])
 
 
 def insert(table, column, value):

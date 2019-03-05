@@ -9,9 +9,13 @@ import numpy as np
 from clickhouse.views import insert
 import scipy.io as sio
 import os
-# client = Client(host='192.168.0.147')
-client = Client(host='localhost')
+client = Client(host='192.168.0.147')
 
+
+res=client.execute('select sum(fileSize) from cloudpss.index where user =%(user)s group by user ',{'user': '55'})
+# client = Client(host='localhost')
+# client.execute('alter table cloudpss.index add column fileSize UInt32 ')
+# res=client.execute('select * from cloudpss.index where user =%(user)s', {'user': '52'})
 # client.execute('create database if not exists cloudpss')
 # client.execute('CREATE TABLE IF NOT EXISTS ' + 'cloudpss.c02261224' +
 #                    ' (sourceName String, date Date default now(), targetName String,user String,type String)ENGINE = MergeTree(date,(targetName),8192)')
@@ -28,6 +32,9 @@ client = Client(host='localhost')
 # result =client.execute('select * from cloudpss.index where sourceName = %s' % ('中啊文'))
 # result = client.execute('select targetName from ' + 'cloudpss.index' + ' where sourceNaame = %(tn)s',
 #                         {'tn': '负荷_供水压力.xlsx'})
+# res=client.execute('desc cloudpss.index')
+print(res[0][0])
+
 
 # result =client.execute("select targetName from %(db)s where sourceName = %(tn)s", {'db':'cloudpss.index','tn':'aa'})
 # print(result)
