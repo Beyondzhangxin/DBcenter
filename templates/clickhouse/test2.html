@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BigML</title>
+    <link rel="stylesheet" type="text/css" href="/static/css/data_center.css">
+</head>
+<body>
+<div id="content" class="container_12">
+    <div id="dashboard_content">
+        <div class="bg_dotted">
+            <div class="grid_12">
+                <div id="project_selector" class="manager_header clearfix">
+                    <i class="icon_selector js-org-icon icon_user"></i>
+                    <div class="js-only_dashboard">
+                        <span class="org_dashboard"><b>TAGE_68</b> - <em>我的主控板</em></span>
+                    </div>
+                    <input id="organization_selector" type="hidden" value="null" class="select"/>
+                    <i class="separator"></i>
+                    <i id="warn_not_in_project" class="icon_project alert_project" style="display: none"></i>
+                    <i class="icon_selector icon_project"></i>
+                    <input id="projects_ctrl" type="hidden" value="5c6cc48beba31d7307002a30" class="select"/>
+                </div>
+                <div class="tab_menu">
+                    <ul class="tabs">
+                        <li><a href="" class="sel" original-title>数据源</a></li>
+                    </ul>
+                </div>
+                <div id="error_message_wrapper"></div>
+                <div id="sources_wrapper" class="resource_wrapper active" style="display: block; opacity: 1;">
+                    <title>数据源|BigML.com</title>
+                    <div class="header_datatable no_select_text">
+                        <div class="header_actions left"></div>
+                        <div class="header_actions source_options">
+                            <div class="divider right"></div>
+                            <div class="action right source_url js-writer">
+                                <a class="remote_source tipsy-tooltip" title="从URL创建数据源"></a>
+                            </div>
+                            <div class="divider right source_inline"></div>
+                            <div class="action right source_inline js-writer">
+                                <a class="inline_source tipsy-tooltip" title="创建内联数据源"></a>
+                            </div>
+
+
+                            <div class="divider right"></div>
+                            <div class="action drop_down inet_cloud right  js-writer">
+                                <a class="dropdown-toggle tipsy-tooltip" title=""></a>
+                                <div class="dropdown_menu">
+
+                                    <div class="line hide">
+                                        <div class="action source_google_drive"></div>
+                                        <a class="remote_googledrive link">
+                                            <span class="text">从Google Drive创建数据源</span>
+                                        </a>
+                                    </div>
+
+
+                                    <div class="line hide">
+                                        <div class="action source_google_storage"></div>
+                                        <a class="remote_googlestorage link">
+                                            <span class="text">从Google Storage创建数据源</span>
+                                        </a>
+                                    </div>
+
+
+                                    <div class="line">
+                                        <div class="action source_dropbox">
+                                            <a class="remote_dropbox link">
+                                                <span class="text">从Dropbox创建数据源</span>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+
+                            <div class="divider right"></div>
+                            <div class="action right searchLens">
+                                <i class="icon-search tipsy-tooltip" title="搜索"></i>
+                            </div>
+                            <div class="divider right"></div>
+                            <div class="action right batchRemove js-writer">
+                                <i class="icon-search tipsy-tooltip" title="删除"></i>
+                            </div>
+                            <div class="divider right"></div>
+                        </div>
+                        <div class="table_title"><span><span class="icon"></span>数据源</span></div>
+                        <div class="clear"></div>
+                    </div>
+                    <div class="dataTables_wrapper">
+                        <div class="fg-toolbar ui-toolbar ui-widget-header ui-corner-tl ui-corner-tr ui-helper-clearfix"
+                             style="display: block; overflow: hidden;"></div>
+                        <table id="sources" class="display namebits" style="width: 942px;"></table>
+                        <div class="fg-toolbar ui-toolbar ui-widget-header ui-corner-bl ui-corner-br ui-helper-clearfix"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="clear"></div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
