@@ -107,7 +107,7 @@ body {
     display: inline-block;
 }
 
-.header_datatable .table_title span.icon{
+.header_datatable .table_title span.icon {
     width: auto;
     display: inline;
     padding: 11px 20px 9px;
@@ -184,8 +184,8 @@ table.data_source_table thead th div.DataTables_sort_wrapper {
 }
 
 .alert {
-	display: none;
-	text-align: right;
+    display: none;
+    text-align: right;
     padding: 2px 49px;
     border-radius: 3px;
 }
@@ -213,6 +213,26 @@ table.data_source_table thead th div.DataTables_sort_wrapper {
     background-color: #f2dede;
     border-color: #ebccd1;
 }
-.fileload_content.toolbar_ui div{
+
+.fileload_content.toolbar_ui div {
     display: inline-block;
+}
+
+table.display {
+    background: #f9f9f9;
+    border-left: 1px solid #eee;
+    border-right: 1px solid #eee;
+}
+table.display thead th {
+    padding: 3px 0 3px 10px;
+    cursor: pointer;
+    * cursor: hand;
+    height: 35px;
+    border: 1px solid #d4d3d3;
+        font-weight: bold;
+    color: #293a43;
+}
+table.display thead th span.space{
+    color: red;
+    margin-left: 20px;
 }

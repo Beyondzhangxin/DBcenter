@@ -4,15 +4,20 @@ import uuid
 from os.path import dirname, join as pjoin
 
 from clickhouse_driver import Client
+
 import numpy as np
 
+from clickhouse.models import DataTableIndex
 from clickhouse.views import insert
 import scipy.io as sio
 import os
 client = Client(host='192.168.0.147')
 
+list =DataTableIndex.objects.all()
 
-res=client.execute('select sum(fileSize) from cloudpss.index where user =%(user)s group by user ',{'user': '55'})
+
+
+# res=client.execute('select sum(fileSize) from cloudpss.index where user =%(user)s group by user ',{'user': '55'})
 # client = Client(host='localhost')
 # client.execute('alter table cloudpss.index add column fileSize UInt32 ')
 # res=client.execute('select * from cloudpss.index where user =%(user)s', {'user': '52'})
@@ -32,8 +37,8 @@ res=client.execute('select sum(fileSize) from cloudpss.index where user =%(user)
 # result =client.execute('select * from cloudpss.index where sourceName = %s' % ('中啊文'))
 # result = client.execute('select targetName from ' + 'cloudpss.index' + ' where sourceNaame = %(tn)s',
 #                         {'tn': '负荷_供水压力.xlsx'})
-# res=client.execute('desc cloudpss.index')
-print(res[0][0])
+res=client.execute('desc cloudpss.index')
+print(len(res))
 
 
 # result =client.execute("select targetName from %(db)s where sourceName = %(tn)s", {'db':'cloudpss.index','tn':'aa'})

@@ -60,8 +60,9 @@
                                 <input type="button" value="开始上传">
                                 <div class="alert"></div>
                             </div>
-                            <div class="remove_content toolbar_ui">
+                            <div class="remove_content toolbar_ui" style="display: none;">
                                 全选<input type="checkbox" id="checkall" value="del_all">
+                                <input type="button" value="确定删除" id="confirm_del">
                             </div>
 
                         </div>
@@ -69,7 +70,7 @@
                         <table id="data_source_table" class="data_source_table display">
                             <thead>
                             <tr>
-                                                                <th class="ui-state-default" rowspan="1"></th>
+                                <th class="ui-state-default" rowspan="1"></th>
 
                                 <th class="ui-state-default" rowspan="1">
                                     <div class="DataTables_sort_wrapper">
@@ -87,10 +88,19 @@
                         </table>
                     </div>
                     <div id="user_space" class="userSpace_wrapper wrapper" style="opacity: 1;display: block;">
-                        <span>已用空间大小：</span>[[used_space_size]] <br>
-                        <span>剩余空间大小：</span>[[left_space_size]] <br>
-                        <span>总空间大小：</span>[[total_space_size]] <br>
-
+                        <table class="display" style="width: 100%;">
+                            <thead>
+                            <tr >
+                                <th><span>已用空间大小</span><span class="space">[[used_space_size]](KB) &#8776 [[(used_space_size/1024).toFixed(2)]](MB)</span></th>
+                                <th><span>剩余空间大小</span><span class="space">[[left_space_size]](KB) &#8776 [[(left_space_size/1024).toFixed(2)]](MB) </span></th>
+                                <th><span>总空间大小</span><span class="space">[[total_space_size]](KB) &#8776 [[(total_space_size/1024).toFixed(2)]](MB) </span> </th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                            </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -102,7 +112,6 @@
 <script>
 
 
-
     var dbcenter = new Vue({
         el: '#dbcenter_manage',
         delimiters: ['[[', ']]'],
@@ -111,13 +120,13 @@
             toolbar_visible: false,
             dataType: '',
             fileName: '',
-            used_space_size:0,
-            left_space_size:0,
-            total_space_size:0,
-            userId:''
+            used_space_size: 0,
+            left_space_size: 0,
+            total_space_size: 0,
+            userId: '',
         },
         methods: {
-            queryString:function(name){
+            queryString: function(name) {
                 var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)');
                 var r = window.location.search.substr(1).match(reg);
                 if (r != null) return unescape(r[2]);
@@ -131,13 +140,15 @@
             },
             init() {
                 var that = this;
+                var file_div = document.createElement('div');
+                file_div.id='file_div'
                 var inputNode = document.createElement('input');
                 inputNode.type = 'file';
                 inputNode.id = 'file';
                 inputNode.style.visibility = 'hidden';
-                document.getElementById('source_wrapper').appendChild(inputNode);
-
-                inputNode.onchange = function() {
+                file_div.appendChild(inputNode);
+                document.getElementById('source_wrapper').appendChild(file_div);
+                $("#file_div").on('change','#file',function() {
                     var files = $('#file')[0].files;
                     var f = files[0];
                     var reader = new FileReader();
@@ -155,10 +166,80 @@
                         };
                     }
 
-                };
+                })
 
-                this.userId=this.queryString('userId');
+                // inputNode.onchange = function() {
+                //     var files = $('#file')[0].files;
+                //     var f = files[0];
+                //     var reader = new FileReader();
+                //     if (f.name.split('.')[1] !== 'mat') {
+                //         reader.readAsBinaryString(f);
+                //         reader.onload = function(e) {
+                //             var data = e.target.result;
+                //             xw(data, that.process_wb, f);
+                //         };
+                //     } else {
+                //         reader.readAsDataURL(f);
+                //         reader.onload = function(e) {
+                //             var data = e.target.result.split(',')[1];
+                //             that.process_mat(data, f);
+                //         };
+                //     }
+                //
+                // };
 
+                this.userId = this.queryString('userId');
+
+            },
+            init_userSpace: function() {
+                var that = this;
+                var url = 'http://' + location.hostname + ':8090/clickhouse/userSpace';
+                var data = {userId: this.userId};
+                $.get(url, data, function(data) {
+                    that.used_space_size = (data.used_space_size/1024).toFixed(2);
+                    that.total_space_size = (data.allowed_space_size/1024).toFixed(2);
+                    that.left_space_size = (data.left_space_size/1024).toFixed(2);
+                });
+            },
+            init_dataSource: function() {
+                // process the data
+                this.dataTable = $('#data_source_table').DataTable({
+                    'processing': true,
+                    'serverSide': true,
+                    'ajax': {
+                        url: 'http://' + location.hostname + ':8090/clickhouse/getIndex',
+                        data: {'targetName': 'cloudpss.index', 'userId': this.userId},
+                        type: 'get',
+                        dataFilter: function(data) {
+                            var json = $.parseJSON(data);
+                            for (var i = 0; i < json.data.length; i++) {
+                                json.data[i].unshift('');
+                            }
+                            return JSON.stringify(json);
+                        },
+                    },
+                    'dom': 'rtip',
+                    'aoColumnDefs': [
+                        {
+                            'render': function(data, type, row) {
+                                return '<div align=\'center\'><input type="checkbox" name="ckb-jobid" value=' +
+                                    row[3] + '></div>';
+
+                            }, 'aTargets': 0,
+                        },
+                        {
+                            'targets': [0],
+                            'orderable': false,
+                            'visible': false,
+                        },
+                        {
+                            'targets': [3],
+                            'visible': false,
+                        },
+
+                    ],
+                }).draw();
+                $('div.toolbar').css('display', 'none');
                 //    init checkbox
                 $('#checkall').on('click', function() {
                     if (this.checked) {
@@ -169,81 +250,20 @@
                         $('input[name=\'ckb-jobid\']').each(function() { this.checked = false; });
                     }
                 });
-            },
-            init_userSpace:function(){
-                var that =this
-                var url = 'http://' + location.hostname + ':8090/clickhouse/userSpace';
-                var data={userId:this.userId}
-                $.get(url,data,function(data) {
-                    that.used_space_size=data.used_space_size;
-                    that.total_space_size=data.allowed_space_size;
-                    that.left_space_size=data.left_space_size;
-                })
-            },
-            init_dataSource: function() {
-                // process the data
-                this.dataTable = $('#data_source_table').DataTable({
-                    'processing': true,
-                    'serverSide': true,
-                    'ajax': {
-                        url: 'http://' + location.hostname + ':8090/clickhouse/getIndex',
-                        data: {'targetName': 'cloudpss.index','userId':this.userId},
-                        type: 'get',
-                        dataFilter:function(data) {
-                            var json=$.parseJSON(data);
-                            for(var i=0;i<json.data.length;i++){
-                                json.data[i].unshift('');
-                            }
-                            return JSON.stringify(json);
-                        }
-                    },
-                    'dom': 'rtip',
-                    'aoColumnDefs': [
-                        {
-                            'render': function(data, type, row) {
-                                return '<div align=\'center\'><input type="checkbox" name="ckb-jobid" value=' +
-                                    row[3] + '></div>';
 
-                            }, 'aTargets': 0,
-                        }],
-                    'columnDefs': [
-                        // {
-                        //     // The `data` parameter refers to the data for the cell (defined by the
-                        //     // `data` option, which defaults to the column being worked with, in
-                        //     // this case `data: 0`.
-                        //     'render': function(data, type, row) {
-                        //         return '<a href="">this</a>' + data + ' (' + type + ')';
-                        //     },
-                        //     'targets': 0,
-                        // },
-                        {
-                            orderable: false,
-                            className: 'select-checkbox',
-                            targets: 0,
-                        },
-                        {
-                            'targets': [2],
-                            'visible': false,
-                        },
-                    ],
-                    select: {
-                        style: 'os',
-                        selector: 'td:first-child',
-                    }
-                });
-                $('div.toolbar').css('display', 'none');
             },
             process_mat: function(data, param) {
                 var url = 'http://' + location.hostname + ':8090/clickhouse/doDataImport';
                 var that = this;
                 var data = {
-                    data: data,
-                    fileName: this.fileName,
-                    size: param.size,
-                    fullName: param.name,
-                    lastModified: param.lastModified,
-                    dataType: this.dataType,
-                    userId: this.userId}
+                        data: data,
+                        fileName: this.fileName,
+                        size: param.size,
+                        fullName: param.name,
+                        lastModified: param.lastModified,
+                        dataType: this.dataType,
+                        userId: this.userId,
+                    }
                 ;
                 jQuery.ajax({
                     dataType: 'json',
@@ -255,12 +275,12 @@
                     contentType: false,
                     success: function(data) {
                         if (data.error_num == 0) {
-                           that.promt_message('上传成功！');
+                            that.promt_message('上传成功！');
                             $('.tab_menu>.tabs li a').first().click();
-                        }else if(data.error_num == 1){
-                            that.promt_message('上传失败！','alert-danger')
-                        }else {
-                            that.promt_message('存储空间已满！','alert-warning')
+                        } else if (data.error_num == 1) {
+                            that.promt_message('上传失败！', 'alert-danger');
+                        } else {
+                            that.promt_message('存储空间已满！', 'alert-warning');
                         }
                     },
                 });
@@ -272,18 +292,19 @@
                 var value = to_json(wb)[0];
                 var url = 'http://' + location.hostname + ':8090/clickhouse/doDataImport';
                 var data = {
-                    data: JSON.stringify(value),
-                    fileName: this.fileName,
-                    size: param.size,
-                    fullName:param.name,
-                    lastModified: param.lastModified,
-                    dataType: this.dataType,
-                    userId: this.userId }
+                        data: JSON.stringify(value),
+                        fileName: this.fileName,
+                        size: param.size,
+                        fullName: param.name,
+                        lastModified: param.lastModified,
+                        dataType: this.dataType,
+                        userId: this.userId,
+                    }
                 ;
                 $.post(url, data, function(resp) {
                     if (resp.error_num == 0) {
                         toastr['info']('upload success!');
-                         $('.tab_menu>.tabs li a').first().click();
+                        $('.tab_menu>.tabs li a').first().click();
                     } else {
                         toastr['info']('upload failed!');
                     }
@@ -296,7 +317,7 @@
             var that = this;
             this.init();
 
-            $('.tab_menu>.tabs li a').click(function(event) {
+            $('.tab_menu>.tabs li a').on('click', function(event) {
                 $.each($(this).addClass('sel').parent().siblings(), function(index, item) {
                     $(item).find('a').removeClass('sel');
                 });
@@ -309,7 +330,7 @@
                         that.dataTable.destroy();
                         that.init_dataSource();
                     }
-                }else if($(this).text()=='空间管理'){
+                } else if ($(this).text() == '空间管理') {
                     $('.grid_12 div.userSpace_wrapper').css('display', 'block');
                     that.init_userSpace();
                 }
@@ -330,11 +351,30 @@
                         css({display: that.toolbar_visible ? 'block' : 'none'});
                     $('div.toolbar div.fileload_content').css('display', 'block');
                 }
-                if (clicked_type.indexOf('batachRemove!=-1')) {
+                if (clicked_type.indexOf('batchRemove') != -1) {
                     $('div.toolbar').
                         css({display: that.toolbar_visible ? 'block' : 'none'});
                     $('div.toolbar div.remove_content').css('display', 'block');
-                };
+                    that.dataTable.column(0).visible(that.toolbar_visible);
+                    $('input[name=\'ckb-jobid\']').click(function() {
+                        if ($(this).is(':checked') == false) {
+                            $('#checkall').
+                                prop('checked', false);
+                        } else {
+                            var flag = true;
+                            $('#checkall').prop('checked', true);
+                            $('input[name=\'ckb-jobid\']').
+                                each(function() {
+                                    if (this.checked == false) {
+                                        $('#checkall').prop('checked', false);
+                                        flag = false;
+                                        return;
+                                    }
+                                });
+                        }
+                    });
+
+                }
 
             });
             $('.fileload_content input[type="button"]').click(function() {
@@ -344,15 +384,31 @@
                     alert('请输入文件名！');
                 } else $('#file').click();
             });
+            $('#confirm_del').on('click', function() {
+                var del_list = [];
+                $.each($('input:checked[name="ckb-jobid"]'), function(index, elem) {
+                    del_list.push(elem.value);
+                });
+                $.get('http://' + location.hostname + ':8090/clickhouse/deleteTable',
+                    {'tablelist': JSON.stringify(del_list)}, function(data) {
+                        if (data.msg == 'success') {
+                            alert('删除成功！');
+                                        $('.tab_menu>.tabs li a').first().click();
+                        } else alert('删除失败！');
+                    });
+
+            });
         },
 
     });
     // $(function() {
-    //    $('.tab_menu>.tabs li a').click(function(event) {
-    //         $.each($(this).addClass('sel').parent().siblings(),function(index,item) {
-    //             $(item).find('a').removeClass('sel');
-    //         })
-    //     });
+    //    // $('.tab_menu>.tabs li a').click(function(event) {
+    //    //      $.each($(this).addClass('sel').parent().siblings(),function(index,item) {
+    //    //          $(item).find('a').removeClass('sel');
+    //    //      })
+    //    //  });
+    //
+    //
     // })
 
 </script>

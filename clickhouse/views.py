@@ -1,9 +1,13 @@
 import base64
+import datetime
 import json
 import os
 import uuid
 
 import numpy as np
+import pymysql
+from django.core import serializers
+from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import render
 
@@ -11,7 +15,17 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from clickhouse_driver import Client
 
+from DBcenter.settings import DATABASES
+from clickhouse.models import DataTableIndex
 from utils.testmat import readFile
+
+# database configuration
+database_ip = DATABASES['default']['HOST']
+database_port = DATABASES['default']['PORT']
+database_name = DATABASES['default']['NAME']
+user = DATABASES['default']['USER']
+pwd = DATABASES['default']['PASSWORD']
+
 
 client = Client('192.168.0.147')
 # client = Client('localhost')
@@ -41,11 +55,7 @@ def doDataImport(request):
 
     fileName = param.get('fileName')
     dataType = param.get('dataType')
-    fileSize=param.get('size')
-    if(used_space_size+fileSize>allowed_space_size):
-        response['msg'] = '个人存储空间已满！'
-        response['error_num'] = 2
-        return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
+
     # load .mat file
     if request.POST.get('data') is None:
         data = param['data']
@@ -64,6 +74,11 @@ def doDataImport(request):
                     val=val.astype(np.str)
                     tableName = 'cloudpss.cloudpss' + ''.join(str(uuid.uuid1()).split('-'))
                     name=fileName+'_'+key
+                    fileSize=val.size*8
+                    if (used_space_size + fileSize > allowed_space_size):
+                        response['msg'] = '个人存储空间已满！'
+                        response['error_num'] = 2
+                        return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
                     doDataInsert(tableName,name,user,dataType,(val.T).tolist(),fileSize)
                 if type(val) == np.ndarray and val.ndim > 2:
                     raise NameError("数据维度有误！")
@@ -78,6 +93,7 @@ def doDataImport(request):
     else:
         # load .xsl file
         data=json.loads(param.get('data'))
+        fileSize = param.get('fileSize')
         try:
             tableName = 'cloudpss.cloudpss' + ''.join(str(uuid.uuid1()).split('-'))
             doDataInsert(tableName, fileName, user, dataType, data,fileSize)
@@ -129,8 +145,21 @@ def searchFileByType(request):
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
 def calculate_used_space(userId):
-    res=client.execute('select sum(fileSize) from cloudpss.index where user =%(user)s group by user ', {'user': userId})
-    return res[0][0]
+    try:
+        db = pymysql.connect(database_ip, user, pwd, database_name)
+        cursor = db.cursor()
+        sql = "SELECT SUM(fileSize) from (SELECT * from data_table_index where user="+userId+" GROUP BY fileSize )a"
+        cursor.execute(sql)
+        rs = cursor.fetchone()
+        db.close()
+        if not rs[0] is None:
+            return rs[0]
+
+        else:
+            return 0
+    except Exception as e:
+        return None
+
 
 
 def get_user_allowed_spaceSize(userId):
@@ -152,13 +181,16 @@ def getUserSpaceInfo(request):
 @require_http_methods(['GET'])
 def delTable(request):
     response = {}
+    tem=request.GET.get('tablelist')
     tablelist = json.loads(request.GET.get('tablelist'))
 
     try:
         for tableName in tablelist:
+            table_index=DataTableIndex.objects.get(targetname=tableName)
+            table_index.delete()
             res = client.execute("drop table if exists "+tableName)
-            response['msg'] = 'success'
-            response['error_num'] = 0
+        response['msg'] = 'success'
+        response['error_num'] = 0
     except Exception as e:
         response['msg'] = str(e)
         response['error_num'] = 1
@@ -186,7 +218,11 @@ def getDataIndex(request):
     end = start+pageSize-1
     response={}
     try:
-        res = client.execute('select * from cloudpss.index where user =%(user)s', {'user': userId})
+        # res = client.execute('select * from cloudpss.index where user =%(user)s', {'user': userId})
+        data=DataTableIndex.objects.all().values()
+        res=[]
+        for item in data:
+            res.append(list(item.values()))
         response['data']=res[start:end]
         response['recordsFiltered'] = len(res)
         response['msg'] = 'success'
@@ -196,6 +232,8 @@ def getDataIndex(request):
         response['error_num'] = 1
         print(e)
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
+
+
 def getTableContentByName(request):
     tableName = request.GET.get('targetName')
     source = request.GET.get('source')
@@ -255,9 +293,9 @@ def hasTable(database, tableName):
 
 
 def createFileIndex(sourceFileName, targetFileName, user, dataType,fileSize):
-    insert('cloudpss.index', '(sourceName,targetName,user,type,fileSize)',
-           [[sourceFileName, targetFileName, user, dataType,fileSize]])
 
+    t=DataTableIndex(sourcename=sourceFileName,date=datetime.datetime.now(),targetname=targetFileName,user=user,type=dataType,filesize=fileSize)
+    t.save()
 
 def insert(table, column, value):
     client.execute('INSERT INTO %s %s VALUES' % (table, column), value)
