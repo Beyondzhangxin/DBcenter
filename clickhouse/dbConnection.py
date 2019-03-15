@@ -13,7 +13,7 @@ import scipy.io as sio
 import os
 client = Client(host='192.168.0.147')
 
-list =DataTableIndex.objects.all()
+# list =DataTableIndex.objects.all()
 
 
 

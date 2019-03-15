@@ -151,6 +151,7 @@ body {
 
 table.data_source_table {
     border-spacing: 0px;
+    width: 100%;
 }
 
 table.data_source_table .ui-state-default {
@@ -233,6 +234,19 @@ table.display thead th {
     color: #293a43;
 }
 table.display thead th span.space{
-    color: red;
     margin-left: 20px;
+}
+span.space.used{
+    color: #08f40d;
+}
+span.space.left{
+    color: red;
+}
+
+span.space.total {
+    color: #0744bf;
+}
+
+tr.highlight {
+    background-color: whitesmoke !important;
 }

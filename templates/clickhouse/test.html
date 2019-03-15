@@ -8,12 +8,11 @@
     <script src="/static/js/xlsx.js"></script>
     <script src="/static/js/ProcessXlsFile.js"></script>
     <script src="/static/js/vue.js"></script>
-    <script src="/static/js/jquery.dataTables.js"></script>
+    <script src="/static/js/datatables.min.js"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
     <link rel="stylesheet" type="text/css" href="/static/css/DB.css">
-    <link rel="stylesheet" type="text/css" href="/static/css/jquery.dataTables.css">
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/select/1.2.7/css/select.dataTables.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/datatables.min.css">
 </head>
 <body>
 <div id="dbcenter_manage" class="wrapper dashboard">
@@ -24,10 +23,29 @@
                     <div class="tab_menu">
                         <ul class="tabs">
                             <li><a original-title>数据源</a></li>
-                            <li><a original-title>空间管理</a></li>
                         </ul>
                     </div>
                     <div id="source_wrapper" class="resource_wrapper wrapper" style="opacity: 1;display: block;">
+                        <!--user space info-->
+                        <div id="user_space" class="userSpace_wrapper" style="opacity: 1;display: block;">
+                            <table class="display" style="width: 100%;">
+                                <thead>
+                                <tr>
+                                    <th><span>已用空间大小</span><span class="space used">[[used_space_size]](KB) &#8776 [[(used_space_size/1024).toFixed(2)]](MB)</span>
+                                    </th>
+                                    <th><span>剩余空间大小</span><span class="space left">[[left_space_size]](KB) &#8776 [[(left_space_size/1024).toFixed(2)]](MB) </span>
+                                    </th>
+                                    <th><span>总空间大小</span><span class="space total">[[total_space_size]](KB) &#8776 [[(total_space_size/1024).toFixed(2)]](MB) </span>
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
                         <div class="header_datatable no_select_text" style="user-select: none">
                             <div class="table_title">
                                 <span class="icon"></span><span>数据源</span>
@@ -47,12 +65,18 @@
                             </div>
 
                         </div>
+
+                        <!--工具栏-->
                         <div class="toolbar">
-                            <div id="data_source_table_filter" class="search_content dataTables_filter toolbar_ui"
-                                 style="display: none;">
-                                <input type="text" class="q-value" placeholder="用名称搜索">
-                                <span class="dataset_sample_help"
-                                      original-title="使用&quot;config:&quot;或&quot;id:&quot;分别按名称选项或资源ID搜索"></span>
+                            <!--<div id="data_source_table_1_filter" class="search_content dataTables_filter toolbar_ui"-->
+                            <!--style="display: none;">-->
+                            <!--<input type="search" placeholder="用名称搜索" aria-controls="data_source_table_1">-->
+                            <!--</div>-->
+                            <div id="data_source_table_1_filter" class="dataTables_filter search_content toolbar_ui">
+                                <label>
+                                    "搜索:"
+                                    <input type="text" id="sourceTable_search">
+                                </label>
                             </div>
                             <div class="fileload_content toolbar_ui" style="display: none;">
                                 <input type="text" class="q-value" v-model="dataType" placeholder="输入数据类型">
@@ -61,13 +85,13 @@
                                 <div class="alert"></div>
                             </div>
                             <div class="remove_content toolbar_ui" style="display: none;">
-                                全选<input type="checkbox" id="checkall" value="del_all">
-                                <input type="button" value="确定删除" id="confirm_del">
+                                全选<input type="checkbox" v-model="delete_checkall" id="checkall" value="del_all">
+                                <input type="button" value="删除" id="confirm_del">
                             </div>
 
                         </div>
-
-                        <table id="data_source_table" class="data_source_table display">
+                        <!--数据源表-->
+                        <table id="data_source_table_1" class="data_source_table display" style="width: 100%;">
                             <thead>
                             <tr>
                                 <th class="ui-state-default" rowspan="1"></th>
@@ -86,22 +110,10 @@
                             </tr>
                             </thead>
                         </table>
+                        <!--单个数据文件表-->
+                        <table id="single_table" class="display" style="display: none;"></table>
                     </div>
-                    <div id="user_space" class="userSpace_wrapper wrapper" style="opacity: 1;display: block;">
-                        <table class="display" style="width: 100%;">
-                            <thead>
-                            <tr >
-                                <th><span>已用空间大小</span><span class="space">[[used_space_size]](KB) &#8776 [[(used_space_size/1024).toFixed(2)]](MB)</span></th>
-                                <th><span>剩余空间大小</span><span class="space">[[left_space_size]](KB) &#8776 [[(left_space_size/1024).toFixed(2)]](MB) </span></th>
-                                <th><span>总空间大小</span><span class="space">[[total_space_size]](KB) &#8776 [[(total_space_size/1024).toFixed(2)]](MB) </span> </th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -117,6 +129,7 @@
         delimiters: ['[[', ']]'],
         data: {
             dataTable: null,
+            single_table: null,
             toolbar_visible: false,
             dataType: '',
             fileName: '',
@@ -124,8 +137,10 @@
             left_space_size: 0,
             total_space_size: 0,
             userId: '',
+            delete_checkall: false,
         },
         methods: {
+            //返回网址request参数
             queryString: function(name) {
                 var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)');
                 var r = window.location.search.substr(1).match(reg);
@@ -141,14 +156,14 @@
             init() {
                 var that = this;
                 var file_div = document.createElement('div');
-                file_div.id='file_div'
+                file_div.id = 'file_div';
                 var inputNode = document.createElement('input');
                 inputNode.type = 'file';
                 inputNode.id = 'file';
                 inputNode.style.visibility = 'hidden';
                 file_div.appendChild(inputNode);
                 document.getElementById('source_wrapper').appendChild(file_div);
-                $("#file_div").on('change','#file',function() {
+                $('#file_div').on('change', '#file', function() {
                     var files = $('#file')[0].files;
                     var f = files[0];
                     var reader = new FileReader();
@@ -166,29 +181,23 @@
                         };
                     }
 
-                })
-
-                // inputNode.onchange = function() {
-                //     var files = $('#file')[0].files;
-                //     var f = files[0];
-                //     var reader = new FileReader();
-                //     if (f.name.split('.')[1] !== 'mat') {
-                //         reader.readAsBinaryString(f);
-                //         reader.onload = function(e) {
-                //             var data = e.target.result;
-                //             xw(data, that.process_wb, f);
-                //         };
-                //     } else {
-                //         reader.readAsDataURL(f);
-                //         reader.onload = function(e) {
-                //             var data = e.target.result.split(',')[1];
-                //             that.process_mat(data, f);
-                //         };
-                //     }
-                //
-                // };
+                });
 
                 this.userId = this.queryString('userId');
+
+                //setting dataTable defaults
+                $.extend(true, $.fn.dataTable.defaults, {
+                    language: {
+                        processing: '加载中...',
+                        info: '_PAGE_ of _PAGES_页',
+                        paginate: {
+                            first: '首页',
+                            previous: '前一页',
+                            next: '下一页',
+                            last: '尾页',
+                        },
+                    },
+                });
 
             },
             init_userSpace: function() {
@@ -196,16 +205,15 @@
                 var url = 'http://' + location.hostname + ':8090/clickhouse/userSpace';
                 var data = {userId: this.userId};
                 $.get(url, data, function(data) {
-                    that.used_space_size = (data.used_space_size/1024).toFixed(2);
-                    that.total_space_size = (data.allowed_space_size/1024).toFixed(2);
-                    that.left_space_size = (data.left_space_size/1024).toFixed(2);
+                    that.used_space_size = (data.used_space_size / 1024).toFixed(2);
+                    that.total_space_size = (data.allowed_space_size / 1024).toFixed(2);
+                    that.left_space_size = (data.left_space_size / 1024).toFixed(2);
                 });
             },
             init_dataSource: function() {
-                // process the data
-                this.dataTable = $('#data_source_table').DataTable({
+                var that = this;
+                this.dataTable = $('#data_source_table_1').DataTable({
                     'processing': true,
-                    'serverSide': true,
                     'ajax': {
                         url: 'http://' + location.hostname + ':8090/clickhouse/getIndex',
                         data: {'targetName': 'cloudpss.index', 'userId': this.userId},
@@ -219,35 +227,52 @@
                         },
                     },
                     'dom': 'rtip',
-                    'aoColumnDefs': [
+                    columnDefs: [
                         {
-                            'render': function(data, type, row) {
-                                return '<div align=\'center\'><input type="checkbox" name="ckb-jobid" value=' +
-                                    row[3] + '></div>';
+                            orderable: false,
+                            className: 'select-checkbox',
+                            targets: 0,
+                            visible: false,
+                        },
+                        {
+                            targets: 2,
+                            render: function(data, type, row, meta) {
+                                if (type === 'sort') {
+                                    return new Date(data).getTime();
+                                } else {
+                                    return data.replace(/T/g, ' ').replace(/\Z/, '');
+                                }
+                            },
+                        },
+                        {
+                            targets: 3,
+                            visible: false,
+                        }, {
+                            targets: 1,
+                            render: function(data, type, row, meta) {
+                                return '<a href="javascript:void(0);" class="data_source_table_link" >' + data + '</a>';
+                            },
+                        }],
+                    select: {
+                        style: 'multi',
+                        selector: 'td.select-checkbox',
+                    },
 
-                            }, 'aTargets': 0,
-                        },
-                        {
-                            'targets': [0],
-                            'orderable': false,
-                            'visible': false,
-                        },
-                        {
-                            'targets': [3],
-                            'visible': false,
-                        },
-
-                    ],
                 }).draw();
+
+                if (this.delete_checkall !== '') {
+                    this.dataTable.rows().select();
+                } else {
+                    this.dataTable.rows().deselect();
+                }
+                $('div.header_datatable ').show();
                 $('div.toolbar').css('display', 'none');
                 //    init checkbox
                 $('#checkall').on('click', function() {
-                    if (this.checked) {
-                        $(this).attr('checked', 'checked');
-                        $('input[name=\'ckb-jobid\']').each(function() { this.checked = true; });
+                    if (!that.delete_checkall) {
+                        that.dataTable.rows().select();
                     } else {
-                        $(this).removeAttr('checked');
-                        $('input[name=\'ckb-jobid\']').each(function() { this.checked = false; });
+                        that.dataTable.rows().deselect();
                     }
                 });
 
@@ -276,7 +301,8 @@
                     success: function(data) {
                         if (data.error_num == 0) {
                             that.promt_message('上传成功！');
-                            $('.tab_menu>.tabs li a').first().click();
+                            that.dataTable.ajax.reload();
+                            that.init_userSpace();
                         } else if (data.error_num == 1) {
                             that.promt_message('上传失败！', 'alert-danger');
                         } else {
@@ -303,12 +329,14 @@
                 ;
                 $.post(url, data, function(resp) {
                     if (resp.error_num == 0) {
-                        toastr['info']('upload success!');
-                        $('.tab_menu>.tabs li a').first().click();
+                        that.promt_message('上传成功！');
+                        that.init_userSpace();
+                        that.dataTable.ajax.reload();
+                    } else if (resp.error_num == 1) {
+                        that.promt_message('上传失败！', 'alert-danger');
                     } else {
-                        toastr['info']('upload failed!');
+                        that.promt_message('存储空间已满！', 'alert-warning');
                     }
-                    ;
                 });
             },
 
@@ -316,37 +344,32 @@
         mounted: function() {
             var that = this;
             this.init();
-
+            //渲染空间表
+            this.init_userSpace();
+            //渲染数据源表
+            this.init_dataSource();
+            //点击菜单栏
             $('.tab_menu>.tabs li a').on('click', function(event) {
-                $.each($(this).addClass('sel').parent().siblings(), function(index, item) {
-                    $(item).find('a').removeClass('sel');
-                });
-                $('.grid_12 div.wrapper').css('display', 'none');
+                $('div.dataTables_wrapper:visible').hide();
                 if ($(this).text() == '数据源') {
-                    $('.grid_12 div.resource_wrapper').css('display', 'block');
-                    if (that.dataTable == null) {
-                        that.init_dataSource();
-                    } else {
-                        that.dataTable.destroy();
-                        that.init_dataSource();
-                    }
-                } else if ($(this).text() == '空间管理') {
-                    $('.grid_12 div.userSpace_wrapper').css('display', 'block');
-                    that.init_userSpace();
+                    $('div.header_datatable ').show();
+                    $('div.toolbar').show();
+                    $('#data_source_table_1_wrapper').show();
                 }
             });
-            $('.tab_menu>.tabs li a').first().click();
+            //点击右上角工具栏
             $('.header_actions.source_options div').click(function(event) {
                 that.toolbar_visible = !that.toolbar_visible;
-                $('div.toolbar .toolbar_ui').css('display', 'none');
+                $('div.toolbar .toolbar_ui').hide();
                 var clicked_type = $(this).attr('class');
                 if (clicked_type.indexOf('searchLens') != -1) {
-
+                    that.dataTable.columns([0]).visible(false);
                     $('div.toolbar').
                         css({display: that.toolbar_visible ? 'block' : 'none'});
                     $('div.toolbar .search_content').css('display', 'block');
                 }
                 if (clicked_type.indexOf('file-upload') != -1) {
+                    that.dataTable.columns([0]).visible(false);
                     $('div.toolbar').
                         css({display: that.toolbar_visible ? 'block' : 'none'});
                     $('div.toolbar div.fileload_content').css('display', 'block');
@@ -377,6 +400,7 @@
                 }
 
             });
+            //上传文件
             $('.fileload_content input[type="button"]').click(function() {
                 if (that.dataType == '') {
                     alert('请输入数据类型！');
@@ -384,32 +408,87 @@
                     alert('请输入文件名！');
                 } else $('#file').click();
             });
+            //删除文件
             $('#confirm_del').on('click', function() {
-                var del_list = [];
-                $.each($('input:checked[name="ckb-jobid"]'), function(index, elem) {
-                    del_list.push(elem.value);
-                });
-                $.get('http://' + location.hostname + ':8090/clickhouse/deleteTable',
-                    {'tablelist': JSON.stringify(del_list)}, function(data) {
-                        if (data.msg == 'success') {
-                            alert('删除成功！');
-                                        $('.tab_menu>.tabs li a').first().click();
-                        } else alert('删除失败！');
+
+                var r = confirm('确定删除？');
+                if (r) {
+                    var delete_rows = that.dataTable.rows({selected: true}).data();
+                    var del_list = [];
+                    $.each(delete_rows, function(index, elem) {
+                        del_list.push(elem[3]);
+                    });
+                    $.get('http://' + location.hostname + ':8090/clickhouse/deleteTable',
+                        {'tablelist': JSON.stringify(del_list)}, function(data) {
+                            if (data.msg == 'success') {
+                                alert('删除成功！');
+                                that.init_userSpace();
+                                that.dataTable.ajax.reload();
+                            } else alert('删除失败！');
+                        });
+                }
+
+            });
+            //点击单个文件链接
+            $('#data_source_table_1 tbody').on('click', 'a.data_source_table_link', function() {
+                var selectedOption = that.dataTable.row($(this).closest('tr')).data()[3];
+                $('div.dataTables_wrapper').hide();
+                $('div.header_datatable ').hide();
+                $('div.toolbar').hide();
+                $('#single_table').show();
+                $.get('http://' + location.hostname + ':8090/clickhouse/getTable',
+                    {'targetName': selectedOption, 'page': 0, 'pageSize': 1},
+                    function(data) {
+                        if (data.error_num != 1) {
+                            if (that.single_table && that.single_table.data().length > 0) {
+                                that.single_table.destroy();
+                            }
+                            $('#single_table').empty();
+
+                            //create the title of table
+                            var thead = document.createElement('thead');
+                            var tr = document.createElement('tr');
+                            thead.appendChild(tr);
+                            that.columns = data.columns.map(function(elem) {
+                                var th = document.createElement('th');
+                                tr.appendChild(th);
+                                th.textContent = elem;
+                                return {'title': elem};
+                            });
+                            $('#single_table').append($(thead));
+                            that.single_table = $('#single_table').DataTable({
+                                'processing': true,
+                                'serverSide': true,
+                                'ajax': {
+                                    url: 'http://' + location.hostname + ':8090/clickhouse/getTable',
+                                    data: {'targetName': selectedOption, 'source': 'cloudSpace'},
+                                    type: 'get',
+                                },
+                                'dom': 'rtip',
+                            });
+                        } else {
+                            if (that.single_table && that.single_table.data().length > 0) {
+                                that.single_table.destroy();
+                                that.single_table.clear();
+                            }
+                            $('#single_table').empty();
+                            var div = $('<div>该表格不存在或被删除</div>');
+                            $('#single_table').append(div);
+                        }
+
                     });
 
+                $('#single_table').show();
+                $('#single_table_wrapper').show();
+
+            });
+            //点击搜索栏
+            $('#sourceTable_search').on('keyup click', function() {
+                that.dataTable.column(1).search($(this).val()).draw();
             });
         },
 
     });
-    // $(function() {
-    //    // $('.tab_menu>.tabs li a').click(function(event) {
-    //    //      $.each($(this).addClass('sel').parent().siblings(),function(index,item) {
-    //    //          $(item).find('a').removeClass('sel');
-    //    //      })
-    //    //  });
-    //
-    //
-    // })
 
 </script>
 </html>

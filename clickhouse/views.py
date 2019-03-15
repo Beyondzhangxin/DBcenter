@@ -93,7 +93,11 @@ def doDataImport(request):
     else:
         # load .xsl file
         data=json.loads(param.get('data'))
-        fileSize = param.get('fileSize')
+        fileSize = float(param.get('size'))
+        if (used_space_size + fileSize > allowed_space_size):
+            response['msg'] = '个人存储空间已满！'
+            response['error_num'] = 2
+            return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
         try:
             tableName = 'cloudpss.cloudpss' + ''.join(str(uuid.uuid1()).split('-'))
             doDataInsert(tableName, fileName, user, dataType, data,fileSize)
@@ -153,7 +157,7 @@ def calculate_used_space(userId):
         rs = cursor.fetchone()
         db.close()
         if not rs[0] is None:
-            return rs[0]
+            return float(rs[0])
 
         else:
             return 0
@@ -212,10 +216,7 @@ def getTypelistByUser(request):
 
 @require_http_methods(['GET'])
 def getDataIndex(request):
-    start = int(request.GET.get('start'))
-    pageSize = int(request.GET.get('length'))
     userId=request.GET.get('userId')
-    end = start+pageSize-1
     response={}
     try:
         # res = client.execute('select * from cloudpss.index where user =%(user)s', {'user': userId})
@@ -223,8 +224,7 @@ def getDataIndex(request):
         res=[]
         for item in data:
             res.append(list(item.values()))
-        response['data']=res[start:end]
-        response['recordsFiltered'] = len(res)
+        response['data']=res
         response['msg'] = 'success'
         response['error_num'] = 0
     except Exception as e:
