@@ -4,14 +4,10 @@ import uuid
 from os.path import dirname, join as pjoin
 
 from clickhouse_driver import Client
-
 import numpy as np
 
-from clickhouse.models import DataTableIndex
-from clickhouse.views import insert
-import scipy.io as sio
-import os
-client = Client(host='192.168.0.147')
+
+client = Client(host='192.168.0.133',database=)
 
 # list =DataTableIndex.objects.all()
 
@@ -37,9 +33,11 @@ client = Client(host='192.168.0.147')
 # result =client.execute('select * from cloudpss.index where sourceName = %s' % ('中啊文'))
 # result = client.execute('select targetName from ' + 'cloudpss.index' + ' where sourceNaame = %(tn)s',
 #                         {'tn': '负荷_供水压力.xlsx'})
-res=client.execute('desc cloudpss.index')
-print(len(res))
-
+# res=client.execute('select toFloat32OrZero(value2)  from cloudpss.cloudpssa2a31b0243db11e983be309c23643a08')
+# temp =np.array(res).T.tolist()
+# print(temp)
+res=client.execute('show tables')
+print(res)
 
 # result =client.execute("select targetName from %(db)s where sourceName = %(tn)s", {'db':'cloudpss.index','tn':'aa'})
 # print(result)
@@ -100,7 +98,7 @@ print(len(res))
 # x =np.arange(10)
 # y=x.reshape(10,1)
 # a=[[1,2,3],[1,2,3]]
-for i in range(0):
-    print(i)
+# for i in range(0):
+#     print(i)
 # print(len(a[0]))
 # print(dirname(sio.__file__))

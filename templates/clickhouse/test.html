@@ -187,6 +187,7 @@
 
                 //setting dataTable defaults
                 $.extend(true, $.fn.dataTable.defaults, {
+                    "scrollX": true,
                     language: {
                         processing: '加载中...',
                         info: '_PAGE_ of _PAGES_页',
@@ -327,6 +328,7 @@
                         userId: this.userId,
                     }
                 ;
+                console.log(data);
                 $.post(url, data, function(resp) {
                     if (resp.error_num == 0) {
                         that.promt_message('上传成功！');

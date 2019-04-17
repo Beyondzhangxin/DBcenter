@@ -57,7 +57,7 @@ def doDataImport(request):
     dataType = param.get('dataType')
 
     # load .mat file
-    if request.POST.get('data') is None:
+    if param['fullName'].find('mat')>=0:
         data = param['data']
         data=base64.b64decode(data)
         filePath=os.path.abspath(rootPath + 'temp\\mat111'+'.mat')
@@ -223,8 +223,8 @@ def getDataIndex(request):
         data=DataTableIndex.objects.all().values()
         res=[]
         for item in data:
-            res.append(list(item.values()))
-        response['data']=res
+            res.append(list(item))
+        response['data']=list(data)
         response['msg'] = 'success'
         response['error_num'] = 0
     except Exception as e:
@@ -249,8 +249,8 @@ def getTableContentByName(request):
             res = client.execute("select * from " + tableName + " where orderNum between %(start)d and %(end)d",
                                  {'start': start, 'end': end})
         else:
-            page = int(request.GET.get('page'))
-            pageSize = int(request.GET.get('pageSize'))
+            page = int(request.GET.get('current')) or 0
+            pageSize = int(request.GET.get('pageSize')) or 10
             start = page * pageSize + 1
             end = (page + 1) * pageSize
             res = client.execute("select * from " + tableName + " where orderNum between %(start)d and %(end)d",
