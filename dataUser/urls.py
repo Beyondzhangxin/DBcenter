@@ -9,6 +9,4 @@ urlpatterns = [
     url('addShareUser', views.addShareUser),
     url('cancelShareUser', views.cancelShareUser),
     url('changeFileStatus', views.changeFileStatus),
-
-
 ]

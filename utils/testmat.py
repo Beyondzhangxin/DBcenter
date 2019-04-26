@@ -54,7 +54,7 @@ def readFile(file):
 """
 curPath = os.path.abspath(os.path.dirname(__file__))
 rootPath = curPath[:curPath.find("DBcenter\\")+len("DBcenter\\")]
-file=os.path.abspath(rootPath + 'temp\\A.mat')
+file=os.path.abspath(rootPath + '/temp/A.mat')
 file1='C:\\Users\dps-dm\Desktop\ProjectTempTest\clickhouseText\A.mat'
 data=readFile(file)
 for key,val in data.items():

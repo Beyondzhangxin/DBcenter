@@ -16,9 +16,11 @@ Including another URLconf
 from django.conf.urls import url
 from django.contrib import admin
 from django.urls import path, include
-
+from dataUser import views as dataUserView
 urlpatterns = [
     path('admin/', admin.site.urls),
     url('clickhouse/',include('clickhouse.urls')),
     url('dataUser/',include('dataUser.urls')),
+    url('sso/',include('djssoclient.urls')),
+    url(r'^$', dataUserView.index),
 ]

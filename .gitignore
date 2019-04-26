@@ -9,4 +9,5 @@ session/*
 .vscode
 db.sqlite3*
 venv/
+.idea
 
