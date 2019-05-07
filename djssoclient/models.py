@@ -1,3 +1,4 @@
+#-*- coding:utf-8 -*-
 import copy
 # import cPickle
 import _pickle as cPickle
@@ -8,6 +9,7 @@ from django.contrib.auth.models import User, AbstractBaseUser, update_last_login
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.dispatch import receiver
 from django.contrib.auth import get_backends
+import json
 
 
 def default_dumpped_dict():
@@ -22,14 +24,14 @@ class SSOUser(AbstractBaseUser):
 
     def __init__(self, *args, **kwargs):
         fieldsOfModel = [x.name for x in self._meta.fields]  # fields can be saved in database
-
+ 
         _kwargs = copy.deepcopy(kwargs)
         extrainfo = {}
         for fn, fv in filter(lambda item: item[0] not in fieldsOfModel, kwargs.items()):
             _kwargs.pop(fn, None)  # only db fields in _kwargs
             extrainfo[fn] = fv
-        _kwargs["extras"] = cPickle.dumps(extrainfo)
-        return super(SSOUser, self).__init__(*args, **_kwargs)
+        _kwargs["extras"] = json.dumps(extrainfo)
+        return super(SSOUser, self).__init__(*args, **_kwargs) 
 
 
     def __getattribute__(self, name):
@@ -40,9 +42,7 @@ class SSOUser(AbstractBaseUser):
             if name.startswith("__"):  # avoid affecting object stuff
                 raise e
             try:
-                print (name)
-                print (self.extras.split("\'")[1].encode())
-                val = cPickle.loads(self.extras.split("\'")[1].encode()).get(name)
+                val = json.loads(self.extras.encode()).get(name)
             except Exception as oe:
                 print (oe)
                 pass
@@ -51,7 +51,7 @@ class SSOUser(AbstractBaseUser):
 
 @receiver(user_logged_out, sender=SSOUser)
 def notify_backend(request, user, *args, **kwargs):
-    from authbackend import SSOAuthBackend
+    from .authbackend import SSOAuthBackend
     for b in get_backends():
         if isinstance(b, SSOAuthBackend):
             b.storageengine.remove(user.id)

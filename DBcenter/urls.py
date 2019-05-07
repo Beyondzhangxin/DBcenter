@@ -23,4 +23,7 @@ urlpatterns = [
     url('dataUser/',include('dataUser.urls')),
     url('sso/',include('djssoclient.urls')),
     url(r'^$', dataUserView.index),
+    url(r'^index/$', dataUserView.index),
+    url(r'^db_center/$', dataUserView.db_index),
+    url(r'^logout/$', dataUserView.logout),
 ]

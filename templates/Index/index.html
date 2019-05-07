@@ -10,10 +10,9 @@
     <script src="/static/js/datatables.min.js"></script>
 </head>
 <body>
-    <h1>123<h1>
     {% csrf_token %}
     {% if user.is_authenticated %}
-        hello {{ user }}, <a href="/accounts/logout">logout</a>
+        hello {{ user }}, <a href="/logout">logout</a>
         <ul>
         <li>username: {{ user.username }}</li>
         <li>last name: {{ user.last_name }}</li>

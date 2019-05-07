@@ -181,3 +181,4 @@ SSO_API_AUTH_SETTING = {
 }
 
 LOGIN_REDIRECT_URL = "/"
+LOGIN_URL = "/sso/login"
