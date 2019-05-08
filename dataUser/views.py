@@ -38,6 +38,10 @@ def index(request):
 
     return TemplateResponse(request, 'Index/Index.html', context)
 
+def login(request):
+    context = {}
+    return TemplateResponse(request, 'Index/Login.html', context)
+
 @login_required
 def db_index(request):
     context = {}

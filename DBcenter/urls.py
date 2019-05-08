@@ -26,4 +26,6 @@ urlpatterns = [
     url(r'^index/$', dataUserView.index),
     url(r'^db_center/$', dataUserView.db_index),
     url(r'^logout/$', dataUserView.logout),
+    url(r'^login/$', dataUserView.login),
+
 ]

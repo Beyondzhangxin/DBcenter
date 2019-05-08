@@ -175,8 +175,8 @@ AUTHENTICATION_BACKENDS = ['djssoclient.authbackend.SSOAuthBackend']
 
 AUTH_USER_MODEL = 'djssoclient.SSOUser'
 SSO_API_AUTH_SETTING = {
-    "apikey": "ec4dacf9",
-    "seckey": "de31e05a46e741839074ee3d37dc0920",
+    "apikey": "3eba304b",
+    "seckey": "471e0b579a904a9896f189a2207d30a7",
     "url": "http://10.111.10.20:8082",
 }
 
