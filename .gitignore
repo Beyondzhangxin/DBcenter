@@ -1,0 +1,23 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Example user template template
+### Example user template
+
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+
+.idea/dataSources.local.xml
+.idea/dataSources/
+.idea/workspace.xml
+DBcenter/__pycache__/
+clickhouse/__pycache__/
+clickhouse/migrations/__pycache__/
+dataUser/__pycache__/
+dataUser/migrations/__pycache__/
+Dockerfile
+clickhouse/test.py
+docker-compose.yml
+output.mat
+utils/__pycache__/
