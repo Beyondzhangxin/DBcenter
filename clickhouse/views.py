@@ -27,7 +27,6 @@ user = DATABASES['default']['USER']
 pwd = DATABASES['default']['PASSWORD']
 
 
-client = Client('192.168.0.147')
 # client = Client('localhost')
 curPath = os.path.abspath(os.path.dirname(__file__))
 rootPath = curPath[:curPath.find("DBcenter\\")+len("DBcenter\\")]
@@ -51,7 +50,6 @@ def doDataImport(request):
     user = str(param.get('userId'))
     used_space_size=calculate_used_space(user)
     allowed_space_size=get_user_allowed_spaceSize(user)
-
 
     fileName = param.get('fileName')
     dataType = param.get('dataType')
@@ -109,6 +107,8 @@ def doDataImport(request):
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
 def doDataInsert(tableName,fileName,user,dataType,data,fileSize):
+    client = Client('192.168.0.147')
+
     column = len(data[0])
     for index, value in enumerate(data):
         value.append(index)
@@ -127,6 +127,7 @@ def doDataInsert(tableName,fileName,user,dataType,data,fileSize):
 
 @require_http_methods(['GET'])
 def searchFileByType(request):
+    client = Client('192.168.0.147')
     response = {}
     type = request.GET.get('dataType')
     user = request.GET.get('userId')
@@ -167,7 +168,7 @@ def calculate_used_space(userId):
 
 
 def get_user_allowed_spaceSize(userId):
-    return 10485760
+    return 10485760*1024
 
 
 def getUserSpaceInfo(request):
@@ -187,6 +188,7 @@ def delTable(request):
     response = {}
     tem=request.GET.get('tablelist')
     tablelist = json.loads(request.GET.get('tablelist'))
+    client = Client('192.168.0.147')
 
     try:
         for tableName in tablelist:
@@ -204,6 +206,8 @@ def delTable(request):
 def getTypelistByUser(request):
     response = {}
     user = request.GET.get('userId')
+    client = Client('192.168.0.147')
+
     try:
         res = client.execute("select type from cloudpss.index where user=%(user)s  group by type ", {'user': user})
         response['data'] = res
@@ -217,10 +221,11 @@ def getTypelistByUser(request):
 @require_http_methods(['GET'])
 def getDataIndex(request):
     userId=request.GET.get('userId')
+    searchParam=request.GET.get('searchParam')
     response={}
     try:
         # res = client.execute('select * from cloudpss.index where user =%(user)s', {'user': userId})
-        data=DataTableIndex.objects.all().values()
+        data=DataTableIndex.objects.filter(sourcename__icontains=searchParam,user=userId).values()
         res=[]
         for item in data:
             res.append(list(item))
@@ -238,6 +243,8 @@ def getTableContentByName(request):
     tableName = request.GET.get('targetName')
     source = request.GET.get('source')
     response = {}
+    client = Client('192.168.0.147')
+
     try:
         if source == 'cloudSpace':
             start = request.GET.get('start')
@@ -274,6 +281,30 @@ def getTableContentByName(request):
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
 
+def getCol(request):
+
+    tableName = request.GET.get('targetName')
+    colName=request.GET.get('colName')
+    response = {}
+    client = Client('192.168.0.147')
+
+    try:
+        page = int(request.GET.get('current')) or 0
+        pageSize = int(request.GET.get('pageSize')) or 10
+        start = page * pageSize + 1
+        end = (page + 1) * pageSize
+        res = client.execute("select "+colName+" from " + tableName + " where orderNum between %(start)d and %(end)d",
+                             {'start': start, 'end': end})
+        response['data'] = res
+        res = client.execute("select count() from " + tableName)
+        response['total'] = res[0][0]
+        response['msg'] = 'success'
+        response['error_num'] = 0
+    except Exception as e:
+        response['msg'] = str(e)
+        response['error_num'] = 1
+    return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
+
 @require_http_methods(['GET'])
 def showTableList(request):
     pass
@@ -285,6 +316,8 @@ def searchFromFileName(request):
 
 
 def hasTable(database, tableName):
+    client = Client('192.168.0.147')
+    client = Client('192.1788.1.3')
     result = client.execute('select targetName from ' + database + ' where sourceName = %(tn)s', {'tn': tableName})
     if len(result) > 0:
         return result[0][0]
@@ -298,7 +331,11 @@ def createFileIndex(sourceFileName, targetFileName, user, dataType,fileSize):
     t.save()
 
 def insert(table, column, value):
+    client = Client('192.168.0.147')
+
     client.execute('INSERT INTO %s %s VALUES' % (table, column), value)
+
+
 
 
 @require_http_methods(['GET'])

@@ -6,11 +6,9 @@ from os.path import dirname, join as pjoin
 from clickhouse_driver import Client
 import numpy as np
 
-
-client = Client(host='192.168.0.133',database=)
+# client = Client(host='192.168.0.133')
 
 # list =DataTableIndex.objects.all()
-
 
 
 # res=client.execute('select sum(fileSize) from cloudpss.index where user =%(user)s group by user ',{'user': '55'})
@@ -36,8 +34,6 @@ client = Client(host='192.168.0.133',database=)
 # res=client.execute('select toFloat32OrZero(value2)  from cloudpss.cloudpssa2a31b0243db11e983be309c23643a08')
 # temp =np.array(res).T.tolist()
 # print(temp)
-res=client.execute('show tables')
-print(res)
 
 # result =client.execute("select targetName from %(db)s where sourceName = %(tn)s", {'db':'cloudpss.index','tn':'aa'})
 # print(result)
@@ -102,3 +98,55 @@ print(res)
 #     print(i)
 # print(len(a[0]))
 # print(dirname(sio.__file__))
+from clickhouse.electri_tr import *
+
+client = Client(host='192.168.0.133', database='cloudpss')
+
+
+def selectexec(startid=-1, endid=None, tableName=None):
+    """
+        固定查询方法
+    """
+    if startid == -1:
+        data = client.execute("(select * from `" + tableName + "` limit 6)")
+    else:
+        endid = endid or startid + 7
+        data = client.execute("(select * from `" + tableName + "` where id > " + str(startid) + " and id < " + str(
+            endid) + " order by `id` )  ")
+        if (len(data) < 1):
+            data = client.execute(
+                "(select * from `" + tableName + "` where id > " + str(startid) + " order by `id` limit 50 ) ")
+    return data
+
+
+def selectchannelexec(startid=-1, endid=None, tableName=None, channels=[]):
+    """
+        固定查询方法
+    """
+
+    endid = endid or startid + 3
+    sqlstr = "select id ,nl, da,tm from (select id, names,datas,times from `" + tableName + "` " + " order by id) array join names as nl,datas as da,times as tm"
+    cond = " where nl = '" + channels[0] + "'"
+    """多个通道同时查询"""
+    # cond=" where nl like '%"+channels.pop()+"%'"
+    channels.pop(0)
+    for val in channels:
+        cond = cond + " or nl = '" + val + "'"
+
+    sqlstr = sqlstr + cond
+
+    data = client.execute(sqlstr)
+    # if startid==-1:
+    #     data=self.client.execute(sqlstr)
+    # else:
+    #     endid= endid or startid +7
+    #     data=self.client.execute("(select * from `"+tableName+"` where id > "+str(startid)+" and id < "+str(endid)+" order by `id` )  ")
+    #     if(len(data)<1):
+    #         data=self.client.execute("(select * from `"+tableName+"` where id > "+str(startid)+" order by `id` limit 50 ) ")
+    return data
+
+
+
+data1 = list(client.execute('select datas,times from cloudpss_3_18_1551867901_result_193673134 where id =1'))
+# data1=getChannels('cloudpss_52_9_1554692007_result')
+print(data1)

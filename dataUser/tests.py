@@ -1,11 +1,5 @@
-from django.test import TestCase
+import numpy as np
 
-# Create your tests here.
-def a(param1):
-    def b(param):
-         return param1+param
-    return b
-p1=a(5)
-p2=a(4)
-print(p1(10))
-print(p2(10))
+a = np.array([[1,2,3]])
+
+print(a.shape)
