@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>数据中心管理</title>
+    <script src="/static/js/jquery-1.12.4.min.js"></script>
+    <script src="/static/js/xlsx.js"></script>
+    <script src="/static/js/ProcessXlsFile.js"></script>
+    <script src="/static/js/vue.js"></script>
+    <script src="/static/js/datatables.min.js"></script>
+</head>
+<body>
+    {% csrf_token %}
+    {% if user.is_authenticated %}
+        hello {{ user }}, <a href="/logout">logout</a>
+        <ul>
+        <li>username: {{ user.username }}</li>
+        <li>last name: {{ user.last_name }}</li>
+        <li>first name: {{ user.first_name }}</li>
+        <li>extras: {{ user.extras }}</li>
+        <li>last login: {{ user.last_login }}</li>
+        {{extras}}
+    {% else %}
+        <a href="/sso/login/">get login</a>
+    {% endif %}
+
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <!-- import CSS -->
+  <link rel="stylesheet" href="/static/element/index.css">
+</head>
+<body>
+  <div id="app">
+    {% csrf_token %}
+  <el-container style="height:100%">
+    <el-header style="height:64px;line-height: 64px;">
+      <img src="/static/img/logo.61dcc1a6.png" style="width: 200px; cursor: pointer;vertical-align: middle;border-style: none;line-height: 64px;">
+      <div style="position: absolute; right: 40px; height: 64px; top: 0px;">
+        <el-dropdown trigger="click" style="color: #fcfcfc;height: 64px;cursor: pointer;line-height: 64px;display: block;color: #fff;padding: 0px 10px;font-size: 16px;user-select: none;">
+          <span class="el-dropdown-link" style="height: 64px;display: block;">
+            {{user}}
+            <img src="/static/img/profile.f68ab223.jpg" style="width: 40px; height: 40px; border-radius: 20px; background: rgb(35, 97, 174);margin: 0px 8px 0px 12px;position: relative;top: 12px;">
+            <i class="el-icon-arrow-down el-icon--right"></i>
+          </span>
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item icon="el-icon-plus">主页</el-dropdown-item>
+            <el-dropdown-item icon="el-icon-circle-plus">注销</el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
+      </div>
+    </el-header>
+    <el-container>
+      <el-aside width="250px" style="background:rgb(84, 92, 100)">
+        <el-menu default-active="2" class="el-menu-vertical-demo" @open="handleOpen" @close="handleClose" background-color="#545c64" text-color="#fff"        active-text-color="#ffd04b" style="height: 100%;">
+          <el-submenu index="1">
+            <template slot="title">
+              <i class="el-icon-location"></i>
+              <span>导航一</span>
+            </template>
+            <el-menu-item-group>
+              <template slot="title">分组一</template>
+              <el-menu-item index="1-1">选项1</el-menu-item>
+              <el-menu-item index="1-2">选项2</el-menu-item>
+            </el-menu-item-group>
+            <el-menu-item-group title="分组2">
+              <el-menu-item index="1-3">选项3</el-menu-item>
+            </el-menu-item-group>
+            <el-submenu index="1-4">
+              <template slot="title">选项4</template>
+              <el-menu-item index="1-4-1">选项1</el-menu-item>
+            </el-submenu>
+          </el-submenu>
+          <el-menu-item index="2">
+            <i class="el-icon-menu"></i>
+            <span slot="title">导航二</span>
+          </el-menu-item>
+          <el-menu-item index="3" disabled>
+            <i class="el-icon-document"></i>
+            <span slot="title">导航三</span>
+          </el-menu-item>
+          <el-menu-item index="4">
+            <i class="el-icon-setting"></i>
+            <span slot="title">导航四</span>
+          </el-menu-item>
+      </el-menu>
+      </el-aside>
+
+      <el-main>
+        <el-form :model="ruleForm" status-icon ref="ruleForm" label-width="100px" class="demo-ruleForm">
+            <el-form-item label="email" prop="email">
+                <el-input v-model="ruleForm.email"></el-input>
+            </el-form-item>
+            <el-form-item label="密码" prop="password">
+                <el-input type="password" v-model="ruleForm.password" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="submitForm('ruleForm')">提交</el-button>
+            </el-form-item>
+        </el-form>
+      </el-main>
+    </el-container>
+  </el-container>    
+  </div>
+</body>
+<!-- import Vue before Element -->
+<script src="/static/element/vue.js"></script>
+<!-- import JavaScript -->
+<script src="/static/element/index.js"></script>
+<script src="/static/js/jquery-1.12.4.min.js"></script>
+
+<script>
+new Vue({
+    el: '#app',
+    delimiters: ['[[', ']]'],
+    data() {
+      return { 
+            visible: false ,
+            ruleForm:{
+                email:null,
+                password:null
+            }
+        }
+    },
+    methods:{
+      handleOpen(key, keyPath) {
+        console.log(key, keyPath);
+      },
+      handleClose(key, keyPath) {
+        console.log(key, keyPath);
+      },
+      submitForm(){
+        console.log(this.ruleForm);
+        //csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+        $.post('/sso/login_backend/',
+            {
+                ...this.ruleForm,
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+            },
+            function(ret){
+                console.log(ret);
+            }
+        )
+      }
+    }
+})
+</script>
+<style>
+body,html,#app{
+  width:100%;
+  height:100%;
+  margin:0;
+  padding:0;
+}
+.el-header{
+  background: #2058a5;
+  background-image: url(/static/img/banner.377c7e02.png);
+}
+.el-dropdown:hover{
+  background: #2d7ece8f;
+}
+</style>
+</html>

@@ -67,14 +67,18 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'clickhouse.apps.ClickhouseConfig',
     'dataUser.apps.DatauserConfig',
+    'djssoclient',
+    # 'djssoclient.SSOUser'
 ]
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
@@ -111,7 +115,16 @@ DATABASES = {
         'HOST': '192.168.0.147',  # 主机
         # 'HOST': 'localhost',  # 主机
         'PORT': '3306',  # 数据库使用的端口
-    }
+    },
+    # 'cloudpss':{
+    #     'ENGINE': 'django.db.backends.mysql',  # 数据库引擎
+    #     'NAME': 'cloudpss',  # 你要存储数据的库名，事先要创建之
+    #     'USER': 'root',  # 数据库用户名
+    #     'PASSWORD': 'syy@1234',  # 密码
+    #     'HOST': '192.168.0.147',  # 主机
+    #     # 'HOST': 'localhost',  # 主机
+    #     'PORT': '3306',  # 数据库使用的端口
+    # }
 }
 
 
@@ -155,3 +168,17 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
 os.path.join(BASE_DIR, 'static'),
 ]
+SSO_USER_STORAGE = "djssoclient.userstorage.SSOUserDBStorage"
+
+SSO_REMOTE_URL_PREFIX = "/sso_auth/"
+AUTHENTICATION_BACKENDS = ['djssoclient.authbackend.SSOAuthBackend']
+
+AUTH_USER_MODEL = 'djssoclient.SSOUser'
+SSO_API_AUTH_SETTING = {
+    "apikey": "3eba304b",
+    "seckey": "471e0b579a904a9896f189a2207d30a7",
+    "url": "http://10.111.10.20:8082",
+}
+
+LOGIN_REDIRECT_URL = "/"
+LOGIN_URL = "/sso/login"
