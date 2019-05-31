@@ -26,14 +26,14 @@ database_name = DATABASES['default']['NAME']
 user = DATABASES['default']['USER']
 pwd = DATABASES['default']['PASSWORD']
 
-
 # client = Client('localhost')
 curPath = os.path.abspath(os.path.dirname(__file__))
-rootPath = curPath[:curPath.find("DBcenter\\")+len("DBcenter\\")]
+rootPath = curPath[:curPath.find("DBcenter\\") + len("DBcenter\\")]
+
 
 @require_http_methods(['GET'])
 def dataImport(request):
-    userId = request.GET.get("userId")
+    userId = request.user.origin_user_id
     context = {'userId': userId}
     return render(request, 'clickhouse/dataImport.html', context)
 
@@ -44,40 +44,40 @@ def doDataImport(request):
     response = {}
 
     try:
-        param=json.loads(request.body)
+        param = json.loads(request.body)
     except Exception as e:
-        param=request.POST
-    user = str(param.get('userId'))
-    used_space_size=calculate_used_space(user)
-    allowed_space_size=get_user_allowed_spaceSize(user)
+        param = request.POST
+    user = request.user.origin_user_id
+    used_space_size = calculate_used_space(user)
+    allowed_space_size = get_user_allowed_spaceSize(user)
 
     fileName = param.get('fileName')
     dataType = param.get('dataType')
 
     # load .mat file
-    if param['fullName'].find('mat')>=0:
+    if param['fullName'].find('mat') >= 0:
         data = param['data']
-        data=base64.b64decode(data)
-        filePath=os.path.abspath(rootPath + 'temp\\mat111'+'.mat')
+        data = base64.b64decode(data)
+        filePath = os.path.abspath(rootPath + 'temp\\mat111' + '.mat')
         try:
-            file =open(filePath,'wb')
+            file = open(filePath, 'wb')
             file.write(data)
             file.flush()
-            mat_data=readFile(filePath)
+            mat_data = readFile(filePath)
             for key, val in mat_data.items():
                 # process the data in mat file
-                if type(val)==np.ndarray and val.ndim<=2:
-                    if val.shape[0]>val.shape[1]:
-                        val=val.T
-                    val=val.astype(np.str)
+                if type(val) == np.ndarray and val.ndim <= 2:
+                    if val.shape[0] > val.shape[1]:
+                        val = val.T
+                    val = val.astype(np.str)
                     tableName = 'cloudpss.cloudpss' + ''.join(str(uuid.uuid1()).split('-'))
-                    name=fileName+'_'+key
-                    fileSize=val.size*8
+                    name = fileName + '_' + key
+                    fileSize = val.size * 8
                     if (used_space_size + fileSize > allowed_space_size):
                         response['msg'] = '个人存储空间已满！'
                         response['error_num'] = 2
                         return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
-                    doDataInsert(tableName,name,user,dataType,(val.T).tolist(),fileSize)
+                    doDataInsert(tableName, name, user, dataType, (val.T).tolist(), fileSize)
                 if type(val) == np.ndarray and val.ndim > 2:
                     raise NameError("数据维度有误！")
             response['msg'] = 'success'
@@ -90,7 +90,7 @@ def doDataImport(request):
 
     else:
         # load .xsl file
-        data=json.loads(param.get('data'))
+        data = json.loads(param.get('data'))
         fileSize = float(param.get('size'))
         if (used_space_size + fileSize > allowed_space_size):
             response['msg'] = '个人存储空间已满！'
@@ -98,7 +98,7 @@ def doDataImport(request):
             return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
         try:
             tableName = 'cloudpss.cloudpss' + ''.join(str(uuid.uuid1()).split('-'))
-            doDataInsert(tableName, fileName, user, dataType, data,fileSize)
+            doDataInsert(tableName, fileName, user, dataType, data, fileSize)
             response['msg'] = 'success'
             response['error_num'] = 0
         except Exception as e:
@@ -106,7 +106,8 @@ def doDataImport(request):
             response['error_num'] = 1
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
-def doDataInsert(tableName,fileName,user,dataType,data,fileSize):
+
+def doDataInsert(tableName, fileName, user, dataType, data, fileSize):
     client = Client('192.168.0.147')
 
     column = len(data[0])
@@ -122,7 +123,7 @@ def doDataInsert(tableName,fileName,user,dataType,data,fileSize):
     client.execute('CREATE TABLE IF NOT EXISTS ' + tableName +
                    create_column + 'ENGINE = MergeTree(date,(orderNum),8192)')
     insert(tableName, insert_column, data)
-    createFileIndex(fileName, tableName, user, dataType,fileSize)
+    createFileIndex(fileName, tableName, user, dataType, fileSize)
 
 
 @require_http_methods(['GET'])
@@ -130,14 +131,15 @@ def searchFileByType(request):
     client = Client('192.168.0.147')
     response = {}
     type = request.GET.get('dataType')
-    user = request.GET.get('userId')
+    user =request.user.origin_user_id
+
     try:
         if not type is None:
             res = client.execute(
                 "select sourceName,date,targetName from cloudpss.index where user=%(user)s and type=%(dtype)s",
                 {'user': user, 'dtype': type})
         else:
-            res=client.execute(
+            res = client.execute(
                 "select sourceName,date,targetName from cloudpss.index where user=%(user)s",
                 {'user': user})
         response['data'] = res
@@ -149,11 +151,12 @@ def searchFileByType(request):
         response['error_num'] = 1
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
+
 def calculate_used_space(userId):
     try:
         db = pymysql.connect(database_ip, user, pwd, database_name)
         cursor = db.cursor()
-        sql = "SELECT SUM(fileSize) from (SELECT * from data_table_index where user="+userId+" GROUP BY fileSize )a"
+        sql = "SELECT SUM(fileSize) from (SELECT * from data_table_index where user=" + userId + " GROUP BY fileSize )a"
         cursor.execute(sql)
         rs = cursor.fetchone()
         db.close()
@@ -166,14 +169,13 @@ def calculate_used_space(userId):
         return None
 
 
-
 def get_user_allowed_spaceSize(userId):
-    return 10485760*1024
+    return 10485760 * 1024
 
 
 def getUserSpaceInfo(request):
     response = {}
-    userId=request.GET.get('userId')
+    userId = str(request.user.origin_user_id)
     used_space_size = calculate_used_space(userId)
     allowed_space_size = get_user_allowed_spaceSize(userId)
     left_space_size = allowed_space_size - used_space_size
@@ -186,15 +188,15 @@ def getUserSpaceInfo(request):
 @require_http_methods(['GET'])
 def delTable(request):
     response = {}
-    tem=request.GET.get('tablelist')
+    tem = request.GET.get('tablelist')
     tablelist = json.loads(request.GET.get('tablelist'))
     client = Client('192.168.0.147')
 
     try:
         for tableName in tablelist:
-            table_index=DataTableIndex.objects.get(targetname=tableName)
+            table_index = DataTableIndex.objects.get(targetname=tableName)
             table_index.delete()
-            res = client.execute("drop table if exists "+tableName)
+            res = client.execute("drop table if exists " + tableName)
         response['msg'] = 'success'
         response['error_num'] = 0
     except Exception as e:
@@ -202,10 +204,11 @@ def delTable(request):
         response['error_num'] = 1
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
+
 @require_http_methods(['GET'])
 def getTypelistByUser(request):
     response = {}
-    user = request.GET.get('userId')
+    user = request.user.origin_user_id
     client = Client('192.168.0.147')
 
     try:
@@ -218,18 +221,19 @@ def getTypelistByUser(request):
         response['error_num'] = 1
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
+
 @require_http_methods(['GET'])
 def getDataIndex(request):
-    userId=request.GET.get('userId')
-    searchParam=request.GET.get('searchParam')
-    response={}
+    userId = request.user.origin_user_id
+    searchParam = request.GET.get('searchParam')
+    response = {}
     try:
         # res = client.execute('select * from cloudpss.index where user =%(user)s', {'user': userId})
-        data=DataTableIndex.objects.filter(sourcename__icontains=searchParam,user=userId).values()
-        res=[]
+        data = DataTableIndex.objects.filter(sourcename__icontains=searchParam, user=userId).values()
+        res = []
         for item in data:
             res.append(list(item))
-        response['data']=list(data)
+        response['data'] = list(data)
         response['msg'] = 'success'
         response['error_num'] = 0
     except Exception as e:
@@ -282,9 +286,8 @@ def getTableContentByName(request):
 
 
 def getCol(request):
-
     tableName = request.GET.get('targetName')
-    colName=request.GET.get('colName')
+    colName = request.GET.get('colName')
     response = {}
     client = Client('192.168.0.147')
 
@@ -293,8 +296,9 @@ def getCol(request):
         pageSize = int(request.GET.get('pageSize')) or 10
         start = page * pageSize + 1
         end = (page + 1) * pageSize
-        res = client.execute("select "+colName+" from " + tableName + " where orderNum between %(start)d and %(end)d",
-                             {'start': start, 'end': end})
+        res = client.execute(
+            "select " + colName + " from " + tableName + " where orderNum between %(start)d and %(end)d",
+            {'start': start, 'end': end})
         response['data'] = res
         res = client.execute("select count() from " + tableName)
         response['total'] = res[0][0]
@@ -304,6 +308,7 @@ def getCol(request):
         response['msg'] = str(e)
         response['error_num'] = 1
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
+
 
 @require_http_methods(['GET'])
 def showTableList(request):
@@ -325,10 +330,11 @@ def hasTable(database, tableName):
         return False
 
 
-def createFileIndex(sourceFileName, targetFileName, user, dataType,fileSize):
-
-    t=DataTableIndex(sourcename=sourceFileName,date=datetime.datetime.now(),targetname=targetFileName,user=user,type=dataType,filesize=fileSize)
+def createFileIndex(sourceFileName, targetFileName, user, dataType, fileSize):
+    t = DataTableIndex(sourcename=sourceFileName, date=datetime.datetime.now(), targetname=targetFileName, user=user,
+                       type=dataType, filesize=fileSize)
     t.save()
+
 
 def insert(table, column, value):
     client = Client('192.168.0.147')
@@ -336,13 +342,11 @@ def insert(table, column, value):
     client.execute('INSERT INTO %s %s VALUES' % (table, column), value)
 
 
-
-
 @require_http_methods(['GET'])
 def test(request):
     return render(request, 'clickhouse/test.html')
 
+
 @require_http_methods(['GET'])
 def dataTable(request):
     return render(request, 'clickhouse/dataTable.html')
-

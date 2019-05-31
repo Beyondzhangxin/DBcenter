@@ -3,6 +3,7 @@ import json
 
 import pymysql
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import numpy as np
 from clickhouse.saoping_tool import selectSFRASYSChannelexec
@@ -65,7 +66,7 @@ def mulTasks(request):
         response['error_num'] = 1
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
-
+@csrf_exempt
 @require_http_methods(['POST'])
 def Phase_magnitude(request):
     """

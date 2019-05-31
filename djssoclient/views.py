@@ -1,3 +1,4 @@
+import json
 import urllib
 # import urlparse
 # from urllib.parse import urlparse
@@ -10,6 +11,8 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 from .apiclient import client
 from . import REMOTE_REQUEST_TOKEN_URL, REMOTE_SSO_LOGIN_URL,REMOTE_AUTH_BACKEND_URL
@@ -77,10 +80,11 @@ def viewLogin(request):
     print (ssoLoginURL)
     return HttpResponseRedirect(ssoLoginURL)
 
-
+@csrf_exempt
+@require_http_methods(['POST'])
 def viewAuthBackEnd(request):
-    email = request.POST.get('email',None)
-    password =  request.POST.get('password',None)
+    email =json.loads(request.body)['email']
+    password =  json.loads(request.body)['password']
     # encrypt_email = encrypt(email)
     # decrypt_email = decrypt(encrypt_email)
     # print (encrypt_email)
