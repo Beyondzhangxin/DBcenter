@@ -18,14 +18,19 @@ port = 8308
 def tasks(request):
     """
     :param request:
-    :return:所有扫频任务ID
+    :return:所有扫频任务ID SFRASYS
     """
     response = {}
-
+    taskType=request.GET.get('taskType')
+    # user = str(request.user.origin_user_id)
+    userId=3
     try:
         db = pymysql.connect(host=database_ip, user=user, password=pwd, database=database_name, port=port)
         cursor = db.cursor()
-        sql = "SELECT task_id from tasksmanager_tasksmanager WHERE task_type='SFRASYS' "
+        if taskType is None:
+            sql="SELECT task_id from tasksmanager_tasksmanager WHERE user_id="+str(userId)
+        else:
+            sql = "SELECT task_id from tasksmanager_tasksmanager WHERE task_type='"+taskType+"' and user_id="+str(userId)
         cursor.execute(sql)
         rs = cursor.fetchall()
         db.close()
@@ -66,6 +71,7 @@ def mulTasks(request):
         response['error_num'] = 1
     return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
 
+
 @csrf_exempt
 @require_http_methods(['POST'])
 def Phase_magnitude(request):
@@ -90,19 +96,19 @@ def Phase_magnitude(request):
         eventList = json.loads(rs[3])
         response = {}
         channel_name = list(eventList["defaultApp"]['output'].keys())[0]
-        data ={'param':[],'phaze':[],'mag':[]}
+        data = {'param': [], 'phaze': [], 'mag': []}
         for item in multiTasks:
             table_name = 'cloudpss_' + str(userId) + '_' + str(simu) + '_' + taskId + '_result_' + str(item)
-            indx = mulTasksAll.index(item)+1
+            indx = mulTasksAll.index(item) + 1
             res = selectSFRASYSChannelexec(indx, table_name, [channel_name + ':Phase', channel_name + ':Magnitude'])
-            if len(res)==0:
+            if len(res) == 0:
                 continue
-            data['param'].append(param[indx-1])
+            data['param'].append(param[indx - 1])
             data['phaze'].append(res[0][0])
             data['mag'].append(res[1][0])
-        phase=np.array(data['phaze'])
+        phase = np.array(data['phaze'])
         unwrapphase = np.unwrap(phase)
-        data['phaze']=list(unwrapphase)
+        data['phaze'] = list(unwrapphase)
         response['data'] = data
         response['msg'] = 'success'
         response['error_num'] = 0

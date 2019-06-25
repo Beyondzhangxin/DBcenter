@@ -28,15 +28,36 @@ def deleteTable(tableName=''):
     client.execute(sql)
 
 
-def getTables(searchParam):
+def getTables(searchParam, user):
     client = Client(host='192.168.0.133', database='cloudpss')
     searchParam = searchParam.replace('_', '\\\\_')
-    sql = "SELECT table, sum(data_uncompressed_bytes) from system.columns WHERE database='cloudpss' and   data_uncompressed_bytes!=0 and table like '%result%' and  table like '%" + searchParam + "%' group by table"
+    sql = "SELECT table, sum(data_uncompressed_bytes) from system.columns WHERE database='cloudpss' and   data_uncompressed_bytes!=0 and table like '%result' and  table like '%" + searchParam + "%' and table like '%_" + user + "_%' group by table"
     # sql = "SELECT name from system.tables WHERE database='cloudpss' and name like '%result%' and name like '%" + searchParam + "%'"
     res = list(client.execute(sql))
     templist = []
     for i in res:
-        templist.append({'tableName': i[0], 'filesize': round(i[1] / 1024**2,4)})
+        templist.append({'tableName': i[0], 'filesize': round(i[1] / 1024 ** 2, 4), 'children': []})
+    return templist
+
+def getalltables(searchParam, user):
+    client = Client(host='192.168.0.133', database='cloudpss')
+    searchParam = searchParam.replace('_', '\\\\_')
+    sql = "SELECT table, sum(data_uncompressed_bytes) from system.columns WHERE database='cloudpss' and   data_uncompressed_bytes!=0 and table like '%result%' and  table like '%" + searchParam + "%' and table like '%_" + user + "_%' group by table"
+    # sql = "SELECT name from system.tables WHERE database='cloudpss' and name like '%result%' and name like '%" + searchParam + "%'"
+    res = list(client.execute(sql))
+    templist = []
+    for i in res:
+        templist.append({'tableName': i[0], 'filesize': round(i[1] / 1024 ** 2, 4), 'children': []})
+    return templist
+
+
+def getMultables(searchParam, user):
+    client = Client(host='192.168.0.133', database='cloudpss')
+    sql = "SELECT table, sum(data_uncompressed_bytes) from system.columns WHERE database='cloudpss' and   data_uncompressed_bytes!=0 and  table like '" + searchParam + "_%' and table like '%_" + user + "_%' group by table"
+    res = list(client.execute(sql))
+    templist = []
+    for i in res:
+        templist.append({'tableName': i[0], 'filesize': round(i[1] / 1024 ** 2, 4)})
     return templist
 
 
@@ -55,6 +76,23 @@ def getChannels(tableName=''):
         return []
 
 
+def getChannelsFromtask(taskId):
+    client = Client(host='192.168.0.133', database='cloudpss')
+    searchParam = taskId + "_result"
+    sql = "SELECT table from system.columns WHERE database='cloudpss' and  table like '%" + searchParam + "'"
+    res=client.execute(sql)
+    if len(res)>0:
+        tableName=res[0][0]
+        return  getChannels(tableName)
+    else:
+        return []
+def tableNameFromTaskid(taskId):
+    client = Client(host='192.168.0.133', database='cloudpss')
+    searchParam = taskId + "_result"
+    sql = "SELECT table from system.columns WHERE database='cloudpss' and  table like '%" + searchParam + "'"
+    res=client.execute(sql)
+    tableName=res[0][0]
+    return tableName
 def selectchannelexec(tableName=None, channels=[]):
     """
     :param startid:
@@ -89,9 +127,9 @@ def getChannelIdCount(tableName=None, channel=''):
 
     sqlstr = "select count(id) from (select id,names,datas,times from `" + tableName + "` order by `id`) array join names as nl,datas as da,times as tm"
     cond = " where nl = '" + channel + "'"
-    sqlstr = sqlstr + cond
+    sqlstr = sqlstr + cond + ' group by id '
     data = client.execute(sqlstr)
-    return data[0][0]
+    return len(data)
 
 
 def selectIdChannelexec(id=None, tableName=None, channel=''):
