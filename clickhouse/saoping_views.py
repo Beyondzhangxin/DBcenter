@@ -23,7 +23,7 @@ def tasks(request):
     response = {}
     taskType=request.GET.get('taskType')
     # user = str(request.user.origin_user_id)
-    userId=3
+    userId=55
     try:
         db = pymysql.connect(host=database_ip, user=user, password=pwd, database=database_name, port=port)
         cursor = db.cursor()

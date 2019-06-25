@@ -130,7 +130,7 @@ def searchFileByType(request):
     client = Client('192.168.0.147')
     response = {}
     type = request.GET.get('dataType')
-    user = request.GET.get('userId')
+    user = request.GET.get('userId') or '55'
     try:
         if not type is None:
             res = client.execute(
@@ -173,7 +173,7 @@ def get_user_allowed_spaceSize(userId):
 
 def getUserSpaceInfo(request):
     response = {}
-    userId=request.GET.get('userId')
+    userId=request.GET.get('userId') or '55'
     used_space_size = calculate_used_space(userId)
     allowed_space_size = get_user_allowed_spaceSize(userId)
     left_space_size = allowed_space_size - used_space_size
@@ -205,7 +205,7 @@ def delTable(request):
 @require_http_methods(['GET'])
 def getTypelistByUser(request):
     response = {}
-    user = request.GET.get('userId')
+    user = request.GET.get('userId') or '55'
     client = Client('192.168.0.147')
 
     try:
@@ -220,7 +220,7 @@ def getTypelistByUser(request):
 
 @require_http_methods(['GET'])
 def getDataIndex(request):
-    userId=request.GET.get('userId')
+    userId=request.GET.get('userId') or '55'
     searchParam=request.GET.get('searchParam')
     response={}
     try:

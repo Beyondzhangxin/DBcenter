@@ -67,8 +67,8 @@ def delTable(request):
 
 def tables(request):
     searchParam = request.GET.get('searchParam')
-    user = request.user.origin_user_id
-    user='3'
+    # user = request.user.origin_user_id
+    user='55'
     response = {}
     try:
         tables = getTables(searchParam, user)
@@ -82,8 +82,8 @@ def tables(request):
 
 def alltables(request):
     searchParam = request.GET.get('searchParam')
-    user = request.user.origin_user_id
-    user='3'
+    # user = request.user.origin_user_id
+    user='55'
     response = {}
     try:
         tables = getalltables(searchParam, user)
@@ -97,7 +97,8 @@ def alltables(request):
 
 def multables(request):
     task_name = request.GET.get('taskName')
-    user = str(request.user.origin_user_id)
+    # user = str(request.user.origin_user_id)`
+    user='55'
     response = {}
     try:
         tables = getMultables(task_name, user)
