@@ -36,7 +36,7 @@ def index(request):
         print (request.user.username)
         context['extras'] = request.user.date_joined
 
-    return TemplateResponse(request, 'Index/Index.html', context)
+    return TemplateResponse(request, 'Index/test.html', context)
 
 def login(request):
     context = {}

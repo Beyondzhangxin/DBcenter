@@ -175,9 +175,9 @@ AUTHENTICATION_BACKENDS = ['djssoclient.authbackend.SSOAuthBackend']
 
 AUTH_USER_MODEL = 'djssoclient.SSOUser'
 SSO_API_AUTH_SETTING = {
-    "apikey": "3eba304b",
-    "seckey": "471e0b579a904a9896f189a2207d30a7",
-    "url": "http://10.111.10.20:8082",
+    "apikey": "98e06707",
+    "seckey": "4e644f58b3fb4dec875446f67d203b47",
+    "url": "http://localhost:8082",
 }
 
 LOGIN_REDIRECT_URL = "/"
