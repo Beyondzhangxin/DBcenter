@@ -144,7 +144,7 @@ virtualenv-clone==0.3.0
 virtualenvwrapper==4.8.2
 webencodings==0.5.1
 websocket-client==0.51.0
-Werkzeug==0.14.1
+Werkzeug==0.15.3
 wrapt==1.11.1
 WTForms==2.2.1
 xlrd==1.1.0
